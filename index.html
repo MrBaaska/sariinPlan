@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="mn" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сарын ажлын төлөвлөгөө /ПЧ-2/</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        railway: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased text-slate-800 bg-slate-100">
+
+    <!-- TOP HEADER / NAV -->
+    <header class="bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-sky-600 p-2 rounded-lg text-white">
+                        <i data-lucide="train" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-none tracking-tight">Замын 2-р анги</h1>
+                        <p class="text-xs text-sky-400 font-medium">ТӨЛӨВЛӨЛТ-ХЯНАЛТ-ДҮГНЭЛТ</p>
+                    </div>
+                </div>
+
+                <!-- Simulation & User Status -->
+                <div class="flex items-center space-x-4">
+                    <!-- Date Simulator (For testing 1-5 open vs 6+ lock rules) -->
+                    <div class="hidden md:flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs space-x-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i>
+                        <span class="text-slate-300">Өнөөдөр:</span>
+                        <input type="date" id="simulatedDateInput" onchange="changeSimulatedDate(this.value)" class="bg-slate-900 border border-slate-600 text-amber-300 text-xs rounded px-2 py-0.5 focus:outline-none focus:border-amber-400">
+                    </div>
+
+                    <!-- User Info & Logout -->
+                    <div id="userInfoContainer" class="flex items-center space-x-3 border-l border-slate-700 pl-4">
+                        <div class="text-right hidden sm:block">
+                            <div id="currentUserName" class="text-sm font-semibold text-slate-100">-</div>
+                            <div id="currentUserRole" class="text-xs text-sky-400">-</div>
+                        </div>
+                        <button onclick="logout()" title="Системээс гарах" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition">
+                            <i data-lucide="log-out" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+            <div class="bg-slate-900 p-6 text-center border-b border-slate-800">
+                <div class="inline-flex p-3 bg-sky-600 text-white rounded-2xl mb-3 shadow-lg shadow-sky-600/30">
+                    <i data-lucide="shield-check" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">Системд нэвтрэх</h2>
+                <p class="text-xs text-slate-400 mt-1">Сарын ажлын төлөвлөгөө, гүйцэтгэл, хяналт, үнэлгээ</p>
+            </div>
+            
+            <form onsubmit="handleLogin(event)" class="p-6 space-x-0 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">Нэвтрэх төрөл</label>
+                    <select id="loginRole" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-3 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <option value="section">Замын хэсэг</option>
+                        <option value="engineer">Инженер</option>
+                        <option value="manager">Удирдлага</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">Хэсэг / Албан тушаал</label>
+                    <select id="loginUserSelect" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-3 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">Нууц код</label>
+                    <input type="password" id="loginCode" required placeholder="Нэвтрэх нууц код оруулах" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-3 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    <p class="text-[11px] text-slate-400 mt-1">Туршилтын нууц код: <span class="font-mono text-slate-600 font-semibold">1234</span></p>
+                </div>
+
+                <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-sky-600/30 transition flex items-center justify-center space-x-2">
+                    <i data-lucide="log-in" class="w-5 h-5"></i>
+                    <span>Системд нэвтрэх</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ========================================== -->
+        <!-- 1. ЗАМЫН ХЭСГИЙН ПОРТАЛ (SECTION PORTAL)    -->
+        <!-- ========================================== -->
+        <section id="sectionPortal" class="space-y-6 hidden">
+            <!-- Top Controls Header -->
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span id="sectionTitleBadge" class="bg-sky-100 text-sky-800 text-xs font-bold px-2.5 py-1 rounded-full">1-р хэсэг</span>
+                        <h2 class="text-xl font-bold text-slate-800">Сарын ажлын төлөвлөгөө / Гүйцэтгэл</h2>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Түр хугацаанд бүх хэсэг бүх өдөр төлөвлөгөө оруулах, засах боломжтой.</p>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <input type="month" id="sectionMonthPicker" onchange="changeSectionMonth(this.value)" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    
+                    <!-- Lock Status Indicator -->
+                    <div id="planLockBadge" class="flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <i data-lucide="lock-open" class="w-4 h-4"></i>
+                        <span>Төлөвлөгөө: Түр нээлттэй</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Portal Tabs -->
+            <div class="border-b border-slate-200 flex space-x-8">
+                <button id="tabBtnCalendar" onclick="switchSectionTab('calendar')" class="py-3 px-1 border-b-2 border-sky-600 font-semibold text-sm text-sky-600 flex items-center space-x-2">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                    <span>Сарын ажлын төлөвлөгөө</span>
+                </button>
+                <button id="tabBtnDashboard" onclick="switchSectionTab('dashboard')" class="py-3 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+                    <span>Ажлын гүйцэтгэл</span>
+                </button>
+                <button id="tabBtnReviews" onclick="switchSectionTab('reviews')" class="py-3 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                    <span>Удирдах албан тушаалтанаас ирүүлсэн тэмдэглэл</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: CALENDAR VIEW -->
+            <div id="sectionTabCalendar" class="space-y-4">
+                <!-- Summary KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <div class="text-xs font-semibold text-slate-500 uppercase">Нийт төлөвлөгдсөн ажил</div>
+                        <div id="secTotalTasks" class="text-2xl font-bold text-slate-800 mt-1">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <div class="text-xs font-semibold text-slate-500 uppercase">Нийт төлөвлөсөн хүн / өдөр</div>
+                        <div id="secTotalManpower" class="text-2xl font-bold text-sky-600 mt-1">0 хүн</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <div class="text-xs font-semibold text-slate-500 uppercase">Гүйцэтгэлийн биелэлт</div>
+                        <div id="secExecutionRate" class="text-2xl font-bold text-emerald-600 mt-1">0%</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <div class="text-xs font-semibold text-slate-500 uppercase">Бригадын бүрэлдэхүүн</div>
+                        <div id="secActiveBrigades" class="text-2xl font-bold text-indigo-600 mt-1">0</div>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid Container -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <div class="grid grid-cols-7 gap-1 text-center font-semibold text-xs text-slate-500 uppercase py-2 border-b border-slate-200">
+                        <div>Дав</div><div>Мяг</div><div>Лха</div><div>Пүр</div><div>Баа</div><div class="text-amber-600">Бям</div><div class="text-red-600">Ням</div>
+                    </div>
+                    <!-- Calendar Days Grid -->
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 mt-2">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: SECTION DASHBOARD -->
+            <div id="sectionTabDashboard" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-slate-800 text-sm mb-4">Гүйцэтгэлийн биелэлтийн харьцаа</h3>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="sectionExecutionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-slate-800 text-sm mb-4">Ажил зохион байгуулалт</h3>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="sectionBrigadeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: REVIEWS & FEEDBACK -->
+            <div id="sectionTabReviews" class="hidden space-y-4">
+                <div id="sectionReviewsList" class="space-y-4">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- 2. ИНЖЕНЕРҮҮДИЙН ПОРТАЛ (ENGINEER PORTAL)  -->
+        <!-- ========================================== -->
+        <section id="engineerPortal" class="space-y-6 hidden">
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span id="engineerTitleBadge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5 py-1 rounded-full">ПЧИС - Ц. Шинэгэрэл</span>
+                        <h2 class="text-xl font-bold text-slate-800">Хяналт үнэлгээний хэсэг</h2>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Замын хэсгүүдийн ирүүлсэн сарын төлөвлөгөө болон өдөр тутмын гүйцэтгэлд 6 үзүүлэлтээр үнэлгээ өгч сэтгэгдэл бичнэ.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <label for="engineerViewMode" class="text-xs font-semibold text-slate-600">Харах хугацаа</label>
+                    <select id="engineerViewMode" onchange="setEngineerViewMode()" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="day">Өдрөөр</option>
+                        <option value="month">Сараар</option>
+                    </select>
+                    <input type="date" id="engineerFilterDate" aria-label="Өдөр сонгох" onchange="loadEngineerData()" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="month" id="engineerFilterMonth" aria-label="Сар сонгох" onchange="loadEngineerData()" class="hidden bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- 25 Sections Overview List -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 font-bold text-slate-800 flex items-center justify-between">
+                    <span>Хэсгүүдийн нэгдсэн жагсаалт ба Төлөв</span>
+                    <span class="text-xs text-slate-500 font-normal">Нийт 25 хэсэг</span>
+                </div>
+                <div class="divide-y divide-slate-200" id="engineerSectionList">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- 3. УДИРДЛАГУУДЫН ПОРТАЛ (MANAGER PORTAL)   -->
+        <!-- ========================================== -->
+        <section id="managerPortal" class="space-y-6 hidden">
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span id="managerTitleBadge" class="bg-purple-100 text-purple-800 text-xs font-bold px-2.5 py-1 rounded-full">Удирдлага</span>
+                        <h2 class="text-xl font-bold text-slate-800">Дүгнэлт баталгаажуулалтын хэсэг</h2>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Хэсгүүдийн сарын ажлын төлөвлөгөөний гүйцэтгэл, инженерийн дүгнэлтийг хянаж, танилцсан тэмдэглэл болон сэтгэгдэл үлдээнэ.</p>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <input type="month" id="managerFilterMonth" onchange="loadManagerDashboard()" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Top Level Analytics Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Нийт төлөвлөгдсөн ажил</div>
+                    <div id="mgrTotalTasks" class="text-2xl font-bold text-slate-800 mt-1">0</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Дундаж биелэлт</div>
+                    <div id="mgrAvgExecution" class="text-2xl font-bold text-emerald-600 mt-1">0%</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Нийт ажилласан хүн-өдөр</div>
+                    <div id="mgrTotalManpower" class="text-2xl font-bold text-sky-600 mt-1">0</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Танилцсан хэсэг</div>
+                    <div id="mgrApprovedSections" class="text-2xl font-bold text-purple-600 mt-1">0 / 25</div>
+                </div>
+            </div>
+
+            <!-- Manager Charts -->
+            <div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 text-sm mb-4">Замын хэсгүүдийн ажлын гүйцэтгэл (%)</h3>
+                    <div class="h-72">
+                        <canvas id="mgrSectionPerformanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h3 class="font-bold text-slate-800">Хэсэг тус бүрийн сарын үнэлгээний тоо</h3>
+                    <p id="mgrEvaluationMonthLabel" class="text-xs text-slate-500 mt-1"></p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-center text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Хэсэг</th>
+                                <th class="px-4 py-3">Сар</th>
+                                <th class="px-4 py-3 text-emerald-700">А — Маш сайн</th>
+                                <th class="px-4 py-3 text-blue-700">Б — Сайн</th>
+                                <th class="px-4 py-3 text-amber-700">В — Дунд</th>
+                                <th class="px-4 py-3 text-red-700">Г — Муу</th>
+                                <th class="px-4 py-3 text-slate-800">Нийт</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mgrEvaluationTableBody" class="divide-y divide-slate-200"></tbody>
+                        <tfoot id="mgrEvaluationTableFoot" class="bg-slate-50 font-bold text-slate-800"></tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Manager Sections Approval Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 font-bold text-slate-800 flex justify-between items-center">
+                    <span>Хэсгүүдийн төлөвлөгөө, инженерийн дүгнэлт ба удирдлагын тэмдэглэл</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3">Хэсэг</th>
+                                <th class="px-6 py-3">Төлөвлөгөө / Гүйцэтгэл</th>
+                                <th class="px-6 py-3">Инженерийн дүгнэлт</th>
+                                <th class="px-6 py-3">Удирдлагын тэмдэглэл</th>
+                                <th class="px-6 py-3 text-right">Үйлдэл</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mgrApprovalTableBody" class="divide-y divide-slate-200">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: DAY TASKS EDITOR & EXECUTION MODAL -->
+    <div id="dayModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+            <!-- Modal Header -->
+            <div class="p-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div>
+                    <h3 id="modalDateTitle" class="font-bold text-lg">2026-10-24-ний ажлын төлөвлөгөө</h3>
+                    <p id="modalLockSubtitle" class="text-xs text-sky-400 mt-0.5">Төлөвлөгөө засах боломжтой</p>
+                </div>
+                <button onclick="closeDayModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
+                <!-- Task List Container -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-slate-800 text-sm">Тухайн өдрийн бригадын ажлууд</h4>
+                        <button id="addNewTaskBtn" onclick="addNewTaskRow()" class="text-xs font-semibold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Ажил нэмэх</span>
+                        </button>
+                    </div>
+
+                    <div id="modalTaskList" class="space-y-4">
+                        <!-- Task cards inserted by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
+                <button onclick="closeDayModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-semibold transition">Хаах</button>
+                <button onclick="saveModalTasks()" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-md shadow-sky-600/30 transition flex items-center space-x-2">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Хадгалах</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ENGINEER EVALUATION MODAL -->
+    <div id="engineerModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="p-5 bg-indigo-900 text-white flex items-center justify-between border-b border-indigo-800">
+                <div>
+                    <h3 id="engModalTitle" class="font-bold text-lg">Хэсгийн гүйцэтгэлд дүгнэлт өгөх</h3>
+                    <p class="text-xs text-indigo-300 mt-0.5">Инженерийн 6 тусгай шалгуураар үнэлгээ өгнө</p>
+                </div>
+                <button onclick="closeEngineerModal()" class="text-indigo-300 hover:text-white p-1 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <form onsubmit="saveEngineerEvaluation(event)" class="p-6 overflow-y-auto flex-1 space-y-4 custom-scrollbar">
+                <input type="hidden" id="engEvalSectionId">
+                <input type="hidden" id="engEvalDate">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Төлөвлөгөөний дагуу ажилласан уу?</label>
+                        <select id="engSelectPlan" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="Хангалттай">Хангалттай (Бүрэн дагаж мөрдсөн)</option>
+                            <option value="Дунд">Дунд (Бага зэрэг зөрүүтэй)</option>
+                            <option value="Хангалтгүй">Хангалтгүй (Мөрдөөгүй)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">2. Хүн хүчний хангамж</label>
+                        <select id="engSelectManpower" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="Хангалттай">Хангалттай (Бүрэн бүрэлдэхүүн)</option>
+                            <option value="Дутагдалтай">Дутагдалтай</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">3. Технологийн горим</label>
+                        <select id="engSelectTech" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="Бүрэн баримталсан">Бүрэн баримталсан</option>
+                            <option value="Зөрчилтэй">Зөрчил илэрсэн</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">4. Цаг агаарын нөхцөл</label>
+                        <select id="engSelectWeather" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="Хэвийн">Хэвийн</option>
+                            <option value="Хүндрэлтэй">Хүндрэлтэй (Бороо/Цас/Салхи)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">5. Тоног төхөөрөмж</label>
+                        <select id="engSelectEquip" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="Хангалттай">Хангалттай</option>
+                            <option value="Дутагдалтай">Дутагдалтай / Гэмтэлтэй</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">6. Ажлын эцсийн чанар</label>
+                        <select id="engSelectQuality" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="Онц">Онц</option>
+                            <option value="Сайн">Сайн</option>
+                            <option value="Дунд">Дунд</option>
+                            <option value="Муу">Муу</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Инженерийн сэтгэгдэл / Шаардлага</label>
+                    <textarea id="engComment" rows="3" placeholder="Засч сайжруулах шаардлагатай зүйлсийг тодорхой бичих..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-3">
+                    <button type="button" onclick="closeEngineerModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold">Цуцлах</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-md shadow-indigo-600/30">Дүгнэлт Хадгалах</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: MANAGER APPROVAL MODAL -->
+    <div id="managerModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-200">
+            <div class="p-5 bg-purple-900 text-white flex items-center justify-between border-b border-purple-800">
+                <div>
+                    <h3 id="mgrModalTitle" class="font-bold text-lg">Хэсэгтэй танилцсан тэмдэглэл</h3>
+                    <p class="text-xs text-purple-300 mt-0.5">Танилцсанаа тэмдэглэж, сэтгэгдэл үлдээнэ</p>
+                </div>
+                <button onclick="closeManagerModal()" class="text-purple-300 hover:text-white p-1 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <form onsubmit="saveManagerApproval(event)" class="p-6 space-y-4">
+                <input type="hidden" id="mgrApprovalSectionId">
+
+                <div>
+                    <label class="flex items-center gap-3 rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm font-semibold text-slate-700">
+                        <input type="checkbox" id="mgrAcknowledged" class="h-4 w-4 accent-purple-600">
+                        <span>Танилцсан</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Удирдлагын сэтгэгдэл</label>
+                    <textarea id="mgrDirectiveComment" rows="4" placeholder="Замын хэсэг болон инженерүүдэд харагдах сэтгэгдэл..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500"></textarea>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-3">
+                    <button type="button" onclick="closeManagerModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold">Цуцлах</button>
+                    <button type="submit" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold shadow-md shadow-purple-600/30">Хадгалах</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // ==========================================
+        // SYSTEM STATE & LOCAL STORAGE INITIALIZATION
+        // ==========================================
+        
+        // System Master Data Setup
+        const SECTION_NAMES = {
+            22: 'ЗОТ',
+            23: 'ПЧРМ',
+            24: 'АХО',
+            25: 'Ойн цех'
+        };
+        const SECTIONS = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            name: SECTION_NAMES[i + 1] || `${i + 1}-р хэсэг`
+        }));
+        const ENGINEERS = [
+            { id: 1, name: 'ПЧИС - Ц. Шинэгэрэл' },
+            { id: 2, name: 'ПЧИ-1 - Наранбаатар' },
+            { id: 3, name: 'ПЧбт-1 - Оюунсайхан' },
+            { id: 4, name: 'ПЧбт-2 - Амарбаяр' },
+            { id: 5, name: 'ПЧтех - Цэцэг' },
+            { id: 6, name: 'ПЧИу-1 - Албанбаатар' },
+            { id: 7, name: 'ПЧИу-2 - Алтантүлхүүр' },
+            { id: 8, name: 'ПЧИу-3 - Г.Банзрагч' },
+            { id: 9, name: 'ПЧИу-4 - Ууганбаяр' },
+            { id: 10, name: 'ПЧД - Мягмарсүрэн' }
+        ];
+        const MANAGERS = [
+            { id: 1, name: 'Замын 2-р ангийн дарга Д.Алтангэрэл' },
+            { id: 2, name: 'Замын ангийн орлогч дарга О.Батхүү' },
+            { id: 3, name: 'Хэсэглэл хариуцсан орлогч дарга Одгэрэл' },
+            { id: 4, name: 'Замын ангийн ерөнхий инженер Б.Ганбаяр' },
+            { id: 5, name: 'Бусад' }
+        ];
+
+        // Simulated Date State (Defaults to current system date)
+        let simulatedDate = new Date().toISOString().split('T')[0];
+
+        // Active Session User
+        let currentUser = null;
+
+        // Reactive Application Database (Loaded from LocalStorage)
+        let db = {
+            plans: {},      // key: `${sectionId}_${date}` => array of tasks
+            engineerEvals: {}, // key: `${sectionId}_${date}` => evaluation object
+            managerApprovals: {} // key: `${sectionId}_${monthStr}` => approval object
+        };
+
+        // Initialize Icons
+        document.addEventListener("DOMContentLoaded", () => {
+            loadDatabase();
+            initDateSimulator();
+            setupLoginUserDropdown();
+            lucide.createIcons();
+        });
+
+        // Load DB from LocalStorage
+        function loadDatabase() {
+            const saved = localStorage.getItem('railway_master_db');
+            if (saved) {
+                try {
+                    db = JSON.parse(saved);
+                } catch (e) {
+                    console.error("Failed to load local DB", e);
+                }
+            } else {
+                // Generate sample seed data for demo
+                seedInitialDemoData();
+            }
+        }
+
+        function saveDatabase() {
+            localStorage.setItem('railway_master_db', JSON.stringify(db));
+        }
+
+        function seedInitialDemoData() {
+            const currentMonth = simulatedDate.substring(0, 7); // YYYY-MM
+            // Seed sample task for Section 1
+            const sampleDate = `${currentMonth}-04`;
+            db.plans[`1_${sampleDate}`] = [
+                {
+                    id: 'task_1',
+                    brigade: '1-р тасаг',
+                    location: 'Замын 120-р км, 4-р зуут',
+                    taskName: 'Үе холбоос чангалах ба рельс тохируулга',
+                    manpower: 8,
+                    signalman: 'Б.Бат-Эрдэнэ',
+                    status: 'Completed',
+                    actualManpower: 8,
+                    executionNote: 'Төлөвлөгөөний дагуу хийж гүйцэтгэсэн.'
+                }
+            ];
+            saveDatabase();
+        }
+
+        // ==========================================
+        // DATE SIMULATION & LOCK RULES
+        // ==========================================
+        function initDateSimulator() {
+            document.getElementById('simulatedDateInput').value = simulatedDate;
+        }
+
+        function changeSimulatedDate(newDate) {
+            simulatedDate = newDate;
+            if (currentUser) {
+                if (currentUser.role === 'section') loadSectionPortal();
+                if (currentUser.role === 'engineer') loadEngineerData();
+                if (currentUser.role === 'manager') loadManagerDashboard();
+            }
+        }
+
+        // Temporarily allow plan editing on every date.
+        function isPlanLocked(dateStr) {
+            return false;
+        }
+
+
+        // ==========================================
+        // AUTHENTICATION & USER MANAGEMENT
+        // ==========================================
+        function setupLoginUserDropdown() {
+            const role = document.getElementById('loginRole').value;
+            const select = document.getElementById('loginUserSelect');
+            select.innerHTML = '';
+
+            let list = [];
+            if (role === 'section') list = SECTIONS;
+            else if (role === 'engineer') list = ENGINEERS;
+            else if (role === 'manager') list = MANAGERS;
+
+            list.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                select.appendChild(opt);
+            });
+        }
+
+        document.getElementById('loginRole').addEventListener('change', setupLoginUserDropdown);
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const role = document.getElementById('loginRole').value;
+            const userId = parseInt(document.getElementById('loginUserSelect').value);
+            const code = document.getElementById('loginCode').value;
+
+            // Simplified code check (1234)
+            if (code !== '1234' && code !== '') {
+                alert('Нууц код буруу байна! (Туршилтын код: 1234)');
+                return;
+            }
+
+            let userName = '';
+            if (role === 'section') userName = SECTIONS.find(s => s.id === userId).name;
+            else if (role === 'engineer') userName = ENGINEERS.find(e => e.id === userId).name;
+            else if (role === 'manager') userName = MANAGERS.find(m => m.id === userId).name;
+
+            currentUser = { role, id: userId, name: userName };
+
+            // Update UI Header
+            document.getElementById('currentUserName').textContent = currentUser.name;
+            document.getElementById('currentUserRole').textContent = 
+                role === 'section' ? 'Замын хэсэг' : (role === 'engineer' ? 'Хяналтын инженер' : 'Удирдлага');
+
+            document.getElementById('loginScreen').classList.add('hidden');
+
+            // Show proper portal
+            document.getElementById('sectionPortal').classList.add('hidden');
+            document.getElementById('engineerPortal').classList.add('hidden');
+            document.getElementById('managerPortal').classList.add('hidden');
+
+            if (role === 'section') {
+                document.getElementById('sectionPortal').classList.remove('hidden');
+                document.getElementById('sectionMonthPicker').value = simulatedDate.substring(0, 7);
+                loadSectionPortal();
+            } else if (role === 'engineer') {
+                document.getElementById('engineerPortal').classList.remove('hidden');
+                document.getElementById('engineerFilterDate').value = simulatedDate;
+                document.getElementById('engineerFilterMonth').value = simulatedDate.substring(0, 7);
+                loadEngineerData();
+            } else if (role === 'manager') {
+                document.getElementById('managerPortal').classList.remove('hidden');
+                document.getElementById('managerFilterMonth').value = simulatedDate.substring(0, 7);
+                loadManagerDashboard();
+            }
+
+            lucide.createIcons();
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+
+        // ==========================================
+        // 1. ЗАМЫН ХЭСГИЙН ЛОГИК (SECTION PORTAL)
+        // ==========================================
+        let activeSectionTab = 'calendar';
+        let sectionChart1 = null;
+        let sectionChart2 = null;
+
+        function switchSectionTab(tab) {
+            activeSectionTab = tab;
+            ['calendar', 'dashboard', 'reviews'].forEach(t => {
+                document.getElementById(`sectionTab${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.add('hidden');
+                document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`).className = 
+                    'py-3 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-slate-700 flex items-center space-x-2 border-transparent';
+            });
+
+            const activeBtn = document.getElementById(`tabBtn${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+            activeBtn.className = 'py-3 px-1 border-b-2 border-sky-600 font-semibold text-sm text-sky-600 flex items-center space-x-2';
+            document.getElementById(`sectionTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
+
+            if (tab === 'dashboard') renderSectionCharts();
+            if (tab === 'reviews') renderSectionReviews();
+        }
+
+        function changeSectionMonth(monthStr) {
+            loadSectionPortal();
+            if (activeSectionTab === 'reviews') renderSectionReviews();
+        }
+
+        function loadSectionPortal() {
+            document.getElementById('sectionTitleBadge').textContent = currentUser.name;
+            const monthStr = document.getElementById('sectionMonthPicker').value || simulatedDate.substring(0, 7);
+            
+            const lockBadge = document.getElementById('planLockBadge');
+            lockBadge.className = 'flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200';
+            lockBadge.innerHTML = `<i data-lucide="lock-open" class="w-4 h-4"></i><span>Төлөвлөгөө: Түр нээлттэй</span>`;
+
+            renderCalendarGrid(monthStr);
+            updateSectionKPIs(monthStr);
+            lucide.createIcons();
+        }
+
+        function renderCalendarGrid(monthStr) {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            const [year, month] = monthStr.split('-').map(Number);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const firstDayOfWeek = new Date(year, month - 1, 1).getDay(); // 0 is Sunday
+
+            // Offset for Monday start
+            let startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+            for (let i = 0; i < startOffset; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'h-24 bg-slate-50/50 rounded-lg border border-slate-100';
+                grid.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayStr = String(day).padStart(2, '0');
+                const fullDate = `${monthStr}-${dayStr}`;
+                const planKey = `${currentUser.id}_${fullDate}`;
+                const tasks = db.plans[planKey] || [];
+
+                const cell = document.createElement('div');
+                cell.className = 'h-28 bg-white p-2 rounded-lg border border-slate-200 hover:border-sky-500 cursor-pointer transition flex flex-col justify-between group relative';
+                cell.onclick = () => openDayModal(fullDate);
+
+                let taskCount = tasks.length;
+                let manpowerSum = tasks.reduce((sum, t) => sum + (parseInt(t.manpower) || 0), 0);
+                let completedCount = tasks.filter(t => t.status === 'Completed').length;
+
+                cell.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-sm ${day === parseInt(simulatedDate.split('-')[2]) ? 'bg-sky-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs' : 'text-slate-700'}">${day}</span>
+                        ${taskCount > 0 ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-800">${taskCount} ажил</span>` : ''}
+                    </div>
+
+                    <div class="space-y-1 my-1">
+                        ${taskCount > 0 ? `
+                            <div class="text-[11px] text-slate-600 font-medium truncate">${tasks[0].taskName}</div>
+                            <div class="text-[10px] text-slate-400"><i data-lucide="users" class="w-3 h-3 inline"></i> ${manpowerSum} хүн</div>
+                        ` : `<div class="text-[10px] text-slate-300 italic">Ажил төлөвлөөгүй</div>`}
+                    </div>
+
+                    <div class="text-[10px] flex items-center justify-between border-t border-slate-100 pt-1">
+                        <span class="${completedCount === taskCount && taskCount > 0 ? 'text-emerald-600 font-bold' : 'text-slate-400'}">
+                            ${taskCount > 0 ? `${completedCount}/${taskCount} биелсэн` : ''}
+                        </span>
+                    </div>
+                `;
+                grid.appendChild(cell);
+            }
+        }
+
+        function updateSectionKPIs(monthStr) {
+            let totalTasks = 0;
+            let totalManpower = 0;
+            let completedTasks = 0;
+            let brigadesSet = new Set();
+
+            Object.keys(db.plans).forEach(key => {
+                if (key.startsWith(`${currentUser.id}_${monthStr}`)) {
+                    const tasks = db.plans[key];
+                    tasks.forEach(t => {
+                        totalTasks++;
+                        totalManpower += (parseInt(t.manpower) || 0);
+                        if (t.status === 'Completed') completedTasks++;
+                        if (t.brigade) brigadesSet.add(t.brigade);
+                    });
+                }
+            });
+
+            document.getElementById('secTotalTasks').textContent = totalTasks;
+            document.getElementById('secTotalManpower').textContent = `${totalManpower} хүн`;
+            document.getElementById('secExecutionRate').textContent = totalTasks > 0 ? `${Math.round((completedTasks / totalTasks) * 100)}%` : '0%';
+            document.getElementById('secActiveBrigades').textContent = brigadesSet.size;
+        }
+
+        // Section Dashboard Charts
+        function renderSectionCharts() {
+            const monthStr = document.getElementById('sectionMonthPicker').value || simulatedDate.substring(0, 7);
+            
+            let completed = 0, partial = 0, uncompleted = 0;
+            let brigadeData = {};
+
+            Object.keys(db.plans).forEach(key => {
+                if (key.startsWith(`${currentUser.id}_${monthStr}`)) {
+                    db.plans[key].forEach(t => {
+                        if (t.status === 'Completed') completed++;
+                        else if (t.status === 'Partial') partial++;
+                        else uncompleted++;
+
+                        const b = t.brigade || 'Ерөнхий';
+                        brigadeData[b] = (brigadeData[b] || 0) + (parseInt(t.manpower) || 0);
+                    });
+                }
+            });
+
+            // Chart 1: Execution Rate
+            const ctx1 = document.getElementById('sectionExecutionChart').getContext('2d');
+            if (sectionChart1) sectionChart1.destroy();
+            sectionChart1 = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Биелсэн (100%)', 'Хэсэгчлэн (50-90%)', 'Хийгдээгүй (0%)'],
+                    datasets: [{
+                        data: [completed, partial, uncompleted],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Chart 2: Brigade Manpower Distribution
+            const ctx2 = document.getElementById('sectionBrigadeChart').getContext('2d');
+            if (sectionChart2) sectionChart2.destroy();
+            sectionChart2 = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(brigadeData).length > 0 ? Object.keys(brigadeData) : ['Тасаг 1'],
+                    datasets: [{
+                        label: 'Нийт хуваарилагдсан хүн/өдөр',
+                        data: Object.values(brigadeData).length > 0 ? Object.values(brigadeData) : [0],
+                        backgroundColor: '#0284c7'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderSectionReviews() {
+            const monthStr = document.getElementById('sectionMonthPicker').value || simulatedDate.substring(0, 7);
+            const container = document.getElementById('sectionReviewsList');
+            container.innerHTML = '';
+
+            // Show management acknowledgement and comments for this section.
+            const mgrAppr = db.managerApprovals[`${currentUser.id}_${monthStr}`];
+            if (mgrAppr) {
+                const mgrCard = document.createElement('div');
+                mgrCard.className = 'bg-purple-50 border border-purple-200 p-4 rounded-xl space-y-2';
+                mgrCard.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-purple-900 text-sm"><i data-lucide="message-square" class="w-4 h-4 inline"></i> Удирдлагын тэмдэглэл</span>
+                        <span class="text-xs px-2 py-0.5 rounded font-bold ${mgrAppr.acknowledged || mgrAppr.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}">${mgrAppr.acknowledged || mgrAppr.status === 'Approved' ? 'Танилцсан' : 'Танилцаагүй'}</span>
+                    </div>
+                    <p class="text-xs text-purple-800"><b>Удирдлага:</b> ${escapeHtml(mgrAppr.managerName || 'Тодорхойгүй')}</p>
+                    <p class="text-xs text-purple-800 whitespace-pre-wrap"><b>Сэтгэгдэл:</b> ${escapeHtml(mgrAppr.comment || 'Сэтгэгдэл үлдээгээгүй')}</p>
+                    <div class="text-[10px] text-purple-500">${escapeHtml(mgrAppr.date || '')}</div>
+                `;
+                container.appendChild(mgrCard);
+            }
+
+            // Find Engineer Reviews for this month
+            let engFound = false;
+            Object.keys(db.engineerEvals).forEach(key => {
+                if (key.startsWith(`${currentUser.id}_${monthStr}`)) {
+                    engFound = true;
+                    const eval = db.engineerEvals[key];
+                    const card = document.createElement('div');
+                    card.className = 'bg-white border border-slate-200 p-4 rounded-xl space-y-2 shadow-sm';
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <span class="font-bold text-slate-800 text-sm">${eval.date} - Инженерийн Дүгнэлт</span>
+                            <span class="text-xs font-semibold text-indigo-600">${eval.engineerName}</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                            <div><span class="text-slate-400">Төлөвлөгөө:</span> <b>${eval.planStatus}</b></div>
+                            <div><span class="text-slate-400">Хүн хүч:</span> <b>${eval.manpowerStatus}</b></div>
+                            <div><span class="text-slate-400">Технологи:</span> <b>${eval.techStatus}</b></div>
+                            <div><span class="text-slate-400">Цаг агаар:</span> <b>${eval.weatherStatus}</b></div>
+                            <div><span class="text-slate-400">Тоног төхөөрөмж:</span> <b>${eval.equipStatus}</b></div>
+                            <div><span class="text-slate-400">Чанарын үнэлгээ:</span> <b class="text-indigo-600">${eval.qualityGrade}</b></div>
+                        </div>
+                        ${eval.comment ? `<div class="text-xs bg-slate-50 p-2 rounded text-slate-700 mt-2"><b>Сэтгэгдэл:</b> ${eval.comment}</div>` : ''}
+                    `;
+                    container.appendChild(card);
+                }
+            });
+
+            if (!mgrAppr && !engFound) {
+                container.innerHTML = `<div class="p-8 text-center text-slate-400 text-sm">Одоогоор инженер болон удирдлагаас ирүүлсэн сэтгэгдэл байхгүй байна.</div>`;
+            }
+            lucide.createIcons();
+        }
+
+
+        // ==========================================
+        // DAY TASKS MODAL LOGIC (PLANNING & EXECUTION)
+        // ==========================================
+        let currentModalDate = null;
+
+        function openDayModal(dateStr) {
+            currentModalDate = dateStr;
+            const locked = isPlanLocked(dateStr);
+
+            document.getElementById('modalDateTitle').textContent = `${dateStr}-ний ажлын төлөвлөгөө ба гүйцэтгэл`;
+            document.getElementById('modalLockSubtitle').textContent = 'Түр хугацаанд бүх өдөр төлөвлөгөө оруулах, засах боломжтой';
+
+            document.getElementById('addNewTaskBtn').style.display = locked ? 'none' : 'inline-flex';
+
+            renderModalTaskRows(dateStr, locked);
+            document.getElementById('dayModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeDayModal() {
+            document.getElementById('dayModal').classList.add('hidden');
+        }
+
+        function renderModalTaskRows(dateStr, locked) {
+            const container = document.getElementById('modalTaskList');
+            container.innerHTML = '';
+
+            const planKey = `${currentUser.id}_${dateStr}`;
+            const tasks = db.plans[planKey] || [];
+
+            if (tasks.length === 0 && locked) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">Энэ өдөрт анхнаас нь ажил төлөвлөөгүй байна.</div>`;
+                return;
+            }
+
+            tasks.forEach((task, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 relative group';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span class="text-xs font-bold text-sky-800 uppercase">Ажил #${index + 1}</span>
+                        ${!locked ? `
+                            <button onclick="removeTaskRow(${index})" class="text-red-500 hover:text-red-700 text-xs flex items-center space-x-1">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                <span>Устгах</span>
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <!-- Planning Fields -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Тасаг / Бригад</label>
+                            <input type="text" data-field="brigade" data-index="${index}" value="${task.brigade || '1-р тасаг'}" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs font-semibold focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Байршил (Км / Зуут)</label>
+                            <input type="text" data-field="location" data-index="${index}" value="${task.location || ''}" placeholder="Замын км, өртөө" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Гүйцэтгэх ажил</label>
+                            <input type="text" data-field="taskName" data-index="${index}" value="${task.taskName || ''}" placeholder="Ажлын нэр" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs font-semibold focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Хүн хүч / Дохиочин</label>
+                            <div class="grid grid-cols-2 gap-1">
+                                <input type="number" data-field="manpower" data-index="${index}" value="${task.manpower || 0}" placeholder="Хүн" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                                <input type="text" data-field="signalman" data-index="${index}" value="${task.signalman || ''}" placeholder="Дохиочин" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Execution Fields (Enabled when Execution Phase) -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 mt-2 space-y-2">
+                        <div class="text-[11px] font-bold text-slate-700 uppercase flex items-center space-x-1">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span>Өдөр тутмын Гүйцэтгэлийн Бүртгэл</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-1">Гүйцэтгэлийн төлөв (Select)</label>
+                                <select data-field="status" data-index="${index}" class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs font-semibold focus:ring-1 focus:ring-sky-500">
+                                    <option value="Uncompleted" ${task.status === 'Uncompleted' ? 'selected' : ''}>Хийгдээгүй (0%)</option>
+                                    <option value="Partial" ${task.status === 'Partial' ? 'selected' : ''}>Хэсэгчлэн биелсэн (50-90%)</option>
+                                    <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Биелсэн (100%)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-1">Бодит оролцсон хүн хүч</label>
+                                <input type="number" data-field="actualManpower" data-index="${index}" value="${task.actualManpower || task.manpower || 0}" class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs focus:ring-1 focus:ring-sky-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-1">Гүйцэтгэлийн тайлбар / Сэтгэгдэл</label>
+                                <input type="text" data-field="executionNote" data-index="${index}" value="${task.executionNote || ''}" placeholder="Тайбарыг энд бичнэ үү" class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs focus:ring-1 focus:ring-sky-500">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function addNewTaskRow() {
+            const planKey = `${currentUser.id}_${currentModalDate}`;
+            if (!db.plans[planKey]) db.plans[planKey] = [];
+            
+            db.plans[planKey].push({
+                id: 'task_' + Date.now(),
+                brigade: '1-р тасаг',
+                location: '',
+                taskName: '',
+                manpower: 5,
+                signalman: '',
+                status: 'Uncompleted',
+                actualManpower: 5,
+                executionNote: ''
+            });
+
+            renderModalTaskRows(currentModalDate, false);
+            lucide.createIcons();
+        }
+
+        function removeTaskRow(index) {
+            const planKey = `${currentUser.id}_${currentModalDate}`;
+            if (db.plans[planKey]) {
+                db.plans[planKey].splice(index, 1);
+                renderModalTaskRows(currentModalDate, false);
+                lucide.createIcons();
+            }
+        }
+
+        function saveModalTasks() {
+            const planKey = `${currentUser.id}_${currentModalDate}`;
+            if (!db.plans[planKey]) db.plans[planKey] = [];
+
+            const inputs = document.querySelectorAll('#modalTaskList [data-field]');
+            inputs.forEach(input => {
+                const field = input.getAttribute('data-field');
+                const index = parseInt(input.getAttribute('data-index'));
+
+                if (db.plans[planKey][index]) {
+                    db.plans[planKey][index][field] = input.value;
+                }
+            });
+
+            saveDatabase();
+            closeDayModal();
+            loadSectionPortal();
+        }
+
+
+        // ==========================================
+        // 2. ИНЖЕНЕРҮҮДИЙН ЛОГИК (ENGINEER PORTAL)
+        // ==========================================
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[char]);
+        }
+
+        function setEngineerViewMode() {
+            const isMonthView = document.getElementById('engineerViewMode').value === 'month';
+            document.getElementById('engineerFilterDate').classList.toggle('hidden', isMonthView);
+            document.getElementById('engineerFilterMonth').classList.toggle('hidden', !isMonthView);
+            loadEngineerData();
+        }
+
+        function renderEngineerTaskCards(tasks) {
+            return tasks.map((task, index) => {
+                const executionStatuses = {
+                    Completed: { label: 'Биелсэн (100%)', style: 'bg-emerald-100 text-emerald-800' },
+                    Partial: { label: 'Хэсэгчлэн биелсэн (50-90%)', style: 'bg-amber-100 text-amber-800' },
+                    Uncompleted: { label: 'Хийгдээгүй (0%)', style: 'bg-rose-100 text-rose-800' }
+                };
+                const status = Object.prototype.hasOwnProperty.call(executionStatuses, task.status)
+                    ? executionStatuses[task.status]
+                    : { label: 'Төлөв оруулаагүй', style: 'bg-slate-100 text-slate-600' };
+                const actualCount = task.actualManpower !== undefined && task.actualManpower !== null
+                    ? `${escapeHtml(task.actualManpower)} хүн`
+                    : 'Оруулаагүй';
+
+                return `
+                    <article class="bg-white p-4 rounded-lg border border-slate-200 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <span class="font-bold text-sm text-slate-800">Ажил #${index + 1}</span>
+                            <span class="text-xs px-2 py-1 rounded-full font-semibold ${status.style}">${status.label}</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                            <div><span class="text-slate-400">Гүйцэтгэх ажил:</span><p class="font-semibold text-slate-800 mt-0.5">${escapeHtml(task.taskName || 'Оруулаагүй')}</p></div>
+                            <div><span class="text-slate-400">Тасаг / Бригад:</span><p class="font-semibold text-slate-800 mt-0.5">${escapeHtml(task.brigade || 'Оруулаагүй')}</p></div>
+                            <div><span class="text-slate-400">Байршил:</span><p class="font-semibold text-slate-800 mt-0.5">${escapeHtml(task.location || 'Оруулаагүй')}</p></div>
+                            <div><span class="text-slate-400">Төлөвлөсөн хүн хүч:</span><p class="font-semibold text-slate-800 mt-0.5">${escapeHtml(task.manpower ?? 0)} хүн</p></div>
+                            <div><span class="text-slate-400">Дохиочин:</span><p class="font-semibold text-slate-800 mt-0.5">${escapeHtml(task.signalman || 'Оруулаагүй')}</p></div>
+                            <div><span class="text-slate-400">Бодит оролцсон хүн хүч:</span><p class="font-semibold text-slate-800 mt-0.5">${actualCount}</p></div>
+                        </div>
+                        <div class="text-xs">
+                            <span class="text-slate-400">Гүйцэтгэлийн тайлбар:</span>
+                            <p class="text-slate-700 mt-0.5 whitespace-pre-wrap">${escapeHtml(task.executionNote || 'Тайлбар оруулаагүй')}</p>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        function loadEngineerData() {
+            document.getElementById('engineerTitleBadge').textContent = currentUser.name;
+            const viewMode = document.getElementById('engineerViewMode').value;
+            const filterDate = document.getElementById('engineerFilterDate').value || simulatedDate;
+            const filterMonth = document.getElementById('engineerFilterMonth').value || simulatedDate.substring(0, 7);
+            const listContainer = document.getElementById('engineerSectionList');
+            listContainer.innerHTML = '';
+
+            SECTIONS.forEach(sec => {
+                const dayTasks = viewMode === 'day' ? (db.plans[`${sec.id}_${filterDate}`] || []) : [];
+                const dayEval = viewMode === 'day' ? db.engineerEvals[`${sec.id}_${filterDate}`] : null;
+                const managerNoteMonth = viewMode === 'day' ? filterDate.substring(0, 7) : filterMonth;
+                const managerNote = db.managerApprovals[`${sec.id}_${managerNoteMonth}`];
+                const days = viewMode === 'month'
+                    ? Object.keys({ ...db.plans, ...db.engineerEvals })
+                        .filter(key => key.startsWith(`${sec.id}_${filterMonth}-`))
+                        .map(key => key.substring(`${sec.id}_`.length))
+                        .filter((date, index, dates) => dates.indexOf(date) === index)
+                        .sort()
+                        .map(date => ({
+                            date,
+                            tasks: db.plans[`${sec.id}_${date}`] || [],
+                            evaluation: db.engineerEvals[`${sec.id}_${date}`] || null
+                        }))
+                    : [{ date: filterDate, tasks: dayTasks, evaluation: dayEval }];
+                const tasks = days.flatMap(day => day.tasks);
+                const evaluations = days.filter(day => day.evaluation);
+
+                let totalManpower = tasks.reduce((sum, t) => sum + (parseInt(t.manpower) || 0), 0);
+                let actualManpower = tasks.reduce((sum, t) => sum + (parseInt(t.actualManpower) || 0), 0);
+                let completedTasks = tasks.filter(t => t.status === 'Completed').length;
+                const evalBadge = viewMode === 'day'
+                    ? (dayEval ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">Дүгнэлт хийгдсэн (${escapeHtml(dayEval.qualityGrade || 'үнэлгээгүй')})</span>` : '')
+                    : (evaluations.length ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">${evaluations.length} өдрийн дүгнэлт</span>` : '');
+                const managerNoteBadge = managerNote
+                    ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold ${managerNote.acknowledged || managerNote.status === 'Approved' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-600'}">Удирдлага ${managerNote.acknowledged || managerNote.status === 'Approved' ? 'танилцсан' : 'тэмдэглэл үлдээсэн'}</span>`
+                    : '';
+                const managerNoteCard = managerNote ? `
+                    <div class="rounded-lg border border-purple-200 bg-purple-50 p-4 text-xs space-y-1">
+                        <div class="font-bold text-purple-900">Удирдлагын тэмдэглэл · ${escapeHtml(managerNote.managerName || 'Тодорхойгүй')} · ${escapeHtml(managerNote.date || '')}</div>
+                        <div class="text-purple-800"><b>Төлөв:</b> ${managerNote.acknowledged || managerNote.status === 'Approved' ? 'Танилцсан' : 'Танилцаагүй'}</div>
+                        <div class="whitespace-pre-wrap text-purple-800"><b>Сэтгэгдэл:</b> ${escapeHtml(managerNote.comment || 'Сэтгэгдэл үлдээгээгүй')}</div>
+                    </div>
+                ` : '';
+                const detailContent = viewMode === 'day'
+                    ? `${managerNoteCard}${dayTasks.length ? renderEngineerTaskCards(dayTasks) : `
+                        <div class="p-4 text-center text-sm text-slate-400 bg-white rounded-lg border border-slate-200">
+                            ${escapeHtml(filterDate)} өдөр төлөвлөгөө оруулаагүй байна.
+                        </div>
+                    `}`
+                    : `${managerNoteCard}${days.length ? days.map(day => {
+                        const dayCompleted = day.tasks.filter(task => task.status === 'Completed').length;
+                        const dayManpower = day.tasks.reduce((sum, task) => sum + (parseInt(task.manpower) || 0), 0);
+                        const evaluationBadge = day.evaluation
+                            ? `<span class="text-xs px-2 py-1 rounded-full font-semibold bg-indigo-100 text-indigo-800">Инженерийн дүгнэлт: ${escapeHtml(day.evaluation.qualityGrade || 'үнэлгээгүй')}</span>`
+                            : '<span class="text-xs text-slate-400">Дүгнэлт өгөөгүй</span>';
+                        return `
+                            <section class="space-y-3">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <h4 class="font-bold text-sm text-slate-800">${escapeHtml(day.date)}</h4>
+                                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                                        <span class="text-slate-500">${day.tasks.length} ажил · ${dayCompleted}/${day.tasks.length} биелсэн · ${dayManpower} төлөвлөсөн хүн</span>
+                                        ${evaluationBadge}
+                                    </div>
+                                </div>
+                                ${day.tasks.length ? renderEngineerTaskCards(day.tasks) : '<div class="p-3 text-xs text-slate-400 bg-white rounded-lg border border-slate-200">Энэ өдөр ажил төлөвлөөгүй.</div>'}
+                            </section>
+                        `;
+                    }).join('') : `
+                        <div class="p-4 text-center text-sm text-slate-400 bg-white rounded-lg border border-slate-200">
+                            ${escapeHtml(filterMonth)} сард төлөвлөгөө оруулаагүй байна.
+                        </div>
+                    `}`;
+
+                const row = document.createElement('div');
+                row.className = 'p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50 transition';
+
+                row.innerHTML = `
+                    <div class="flex-1 space-y-3">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div class="space-y-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="font-bold text-slate-800">${sec.name}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full font-semibold ${tasks.length > 0 ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-500'}">
+                                        ${tasks.length} ажил төлөвлөгдсөн
+                                    </span>
+                                    ${evalBadge}
+                                    ${managerNoteBadge}
+                                </div>
+                                <p class="text-xs text-slate-500">Төлөвлөсөн хүн хүч: ${totalManpower} хүн | Бүртгэгдсэн бодит хүн хүч: ${actualManpower} хүн | Биелсэн ажил: ${completedTasks}/${tasks.length}</p>
+                            </div>
+
+                            <button type="button" onclick="toggleEngineerTasks(${sec.id})" aria-expanded="false" aria-controls="engineerTasksPanel${sec.id}" class="px-3 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center space-x-1.5">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                                <span id="engineerTasksToggleLabel${sec.id}">${viewMode === 'month' ? 'Сарын төлөвлөгөө, гүйцэтгэл харах' : 'Өдрийн төлөвлөгөө, гүйцэтгэл харах'}</span>
+                            </button>
+                        </div>
+
+                        <div id="engineerTasksPanel${sec.id}" class="hidden space-y-4 border-t border-slate-200 pt-3">
+                            ${detailContent}
+                        </div>
+                    </div>
+
+                    ${viewMode === 'day' ? `
+                        <div class="flex items-center space-x-3 md:pl-4">
+                            <button onclick="openEngineerModal(${sec.id}, '${sec.name}', '${filterDate}')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center space-x-1.5">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                <span>${dayEval ? 'Үнэлгээ засах' : 'Үнэлгээ & Дүгнэлт өгөх'}</span>
+                            </button>
+                        </div>
+                    ` : ''}
+                `;
+                listContainer.appendChild(row);
+            });
+            lucide.createIcons();
+        }
+
+        function toggleEngineerTasks(sectionId) {
+            const panel = document.getElementById(`engineerTasksPanel${sectionId}`);
+            const label = document.getElementById(`engineerTasksToggleLabel${sectionId}`);
+            const button = label.closest('button');
+            const isExpanded = panel.classList.toggle('hidden') === false;
+
+            button.setAttribute('aria-expanded', String(isExpanded));
+            const isMonthView = document.getElementById('engineerViewMode').value === 'month';
+            label.textContent = isExpanded
+                ? 'Дэлгэрэнгүйг хаах'
+                : `${isMonthView ? 'Сарын' : 'Өдрийн'} төлөвлөгөө, гүйцэтгэл харах`;
+            button.querySelector('i').setAttribute('data-lucide', isExpanded ? 'eye-off' : 'eye');
+            lucide.createIcons();
+        }
+
+        function openEngineerModal(sectionId, sectionName, dateStr) {
+            document.getElementById('engEvalSectionId').value = sectionId;
+            document.getElementById('engEvalDate').value = dateStr;
+            document.getElementById('engModalTitle').textContent = `${sectionName} - ${dateStr} Дүгнэлт`;
+
+            const evalKey = `${sectionId}_${dateStr}`;
+            const evalData = db.engineerEvals[evalKey];
+
+            if (evalData) {
+                document.getElementById('engSelectPlan').value = evalData.planStatus || 'Хангалттай';
+                document.getElementById('engSelectManpower').value = evalData.manpowerStatus || 'Хангалттай';
+                document.getElementById('engSelectTech').value = evalData.techStatus || 'Бүрэн баримталсан';
+                document.getElementById('engSelectWeather').value = evalData.weatherStatus || 'Хэвийн';
+                document.getElementById('engSelectEquip').value = evalData.equipStatus || 'Хангалттай';
+                document.getElementById('engSelectQuality').value = evalData.qualityGrade || 'А';
+                document.getElementById('engComment').value = evalData.comment || '';
+            } else {
+                document.getElementById('engComment').value = '';
+            }
+
+            document.getElementById('engineerModal').classList.remove('hidden');
+        }
+
+        function closeEngineerModal() {
+            document.getElementById('engineerModal').classList.add('hidden');
+        }
+
+        function saveEngineerEvaluation(e) {
+            e.preventDefault();
+            const sectionId = document.getElementById('engEvalSectionId').value;
+            const dateStr = document.getElementById('engEvalDate').value;
+            const evalKey = `${sectionId}_${dateStr}`;
+
+            db.engineerEvals[evalKey] = {
+                engineerId: currentUser.id,
+                engineerName: currentUser.name,
+                date: dateStr,
+                planStatus: document.getElementById('engSelectPlan').value,
+                manpowerStatus: document.getElementById('engSelectManpower').value,
+                techStatus: document.getElementById('engSelectTech').value,
+                weatherStatus: document.getElementById('engSelectWeather').value,
+                equipStatus: document.getElementById('engSelectEquip').value,
+                qualityGrade: document.getElementById('engSelectQuality').value,
+                comment: document.getElementById('engComment').value
+            };
+
+            saveDatabase();
+            closeEngineerModal();
+            loadEngineerData();
+        }
+
+
+        // ==========================================
+        // 3. УДИРДЛАГУУДЫН ЛОГИК (MANAGER PORTAL)
+        // ==========================================
+        let mgrChart1 = null;
+
+        function loadManagerDashboard() {
+            document.getElementById('managerTitleBadge').textContent = currentUser.name;
+            const monthStr = document.getElementById('managerFilterMonth').value || simulatedDate.substring(0, 7);
+
+            let totalTasks = 0;
+            let completedTasks = 0;
+            let totalManpower = 0;
+            let approvedSectionsCount = 0;
+
+            let sectionPerfData = [];
+            let sectionGradeData = [];
+
+            SECTIONS.forEach(sec => {
+                let secTasks = 0;
+                let secCompleted = 0;
+
+                Object.keys(db.plans).forEach(key => {
+                    if (key.startsWith(`${sec.id}_${monthStr}`)) {
+                        db.plans[key].forEach(t => {
+                            secTasks++;
+                            totalTasks++;
+                            totalManpower += (parseInt(t.manpower) || 0);
+                            if (t.status === 'Completed') {
+                                secCompleted++;
+                                completedTasks++;
+                            }
+                        });
+                    }
+                });
+
+                const rate = secTasks > 0 ? Math.round((secCompleted / secTasks) * 100) : 0;
+                sectionPerfData.push(rate);
+
+                // Check approvals
+                const managerNote = db.managerApprovals[`${sec.id}_${monthStr}`];
+                if (managerNote?.acknowledged || managerNote?.status === 'Approved') {
+                    approvedSectionsCount++;
+                }
+
+                const sectionGrades = { 'А': 0, 'Б': 0, 'В': 0, 'Г': 0 };
+                Object.keys(db.engineerEvals).forEach(key => {
+                    if (key.startsWith(`${sec.id}_${monthStr}-`)) {
+                        const grade = db.engineerEvals[key].qualityGrade;
+                        if (sectionGrades[grade] !== undefined) {
+                            sectionGrades[grade]++;
+                        }
+                    }
+                });
+                sectionGradeData.push({ sectionName: sec.name, grades: sectionGrades });
+            });
+
+            document.getElementById('mgrTotalTasks').textContent = totalTasks;
+            document.getElementById('mgrAvgExecution').textContent = totalTasks > 0 ? `${Math.round((completedTasks / totalTasks) * 100)}%` : '0%';
+            document.getElementById('mgrTotalManpower').textContent = totalManpower;
+            document.getElementById('mgrApprovedSections').textContent = `${approvedSectionsCount} / 25`;
+
+            renderManagerCharts(sectionPerfData);
+            renderManagerEvaluationTable(sectionGradeData, monthStr);
+            renderManagerApprovalTable(monthStr);
+            lucide.createIcons();
+        }
+
+        function renderManagerCharts(perfData) {
+            // Chart 1: 25 Sections Bar Chart
+            const ctx1 = document.getElementById('mgrSectionPerformanceChart').getContext('2d');
+            if (mgrChart1) mgrChart1.destroy();
+            mgrChart1 = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: SECTIONS.map(s => s.name),
+                    datasets: [{
+                        label: 'Гүйцэтгэлийн биелэлт (%)',
+                        data: perfData,
+                        backgroundColor: '#7c3aed'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100, min: 0 } } }
+            });
+
+        }
+
+        function renderManagerEvaluationTable(sectionGradeData, monthStr) {
+            const tbody = document.getElementById('mgrEvaluationTableBody');
+            const tfoot = document.getElementById('mgrEvaluationTableFoot');
+            const totals = { 'А': 0, 'Б': 0, 'В': 0, 'Г': 0 };
+
+            document.getElementById('mgrEvaluationMonthLabel').textContent =
+                `${monthStr} сарын үнэлгээ · Хэсэг тус бүрийн үнэлгээний тоо`;
+
+            tbody.innerHTML = sectionGradeData.map(section => {
+                const grades = section.grades;
+                const total = Object.values(grades).reduce((sum, count) => sum + count, 0);
+
+                Object.keys(totals).forEach(grade => {
+                    totals[grade] += grades[grade];
+                });
+
+                return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 text-left font-semibold text-slate-800">${escapeHtml(section.sectionName)}</td>
+                        <td class="px-4 py-3">${escapeHtml(monthStr)}</td>
+                        <td class="px-4 py-3 font-semibold text-emerald-700">${grades['А']}</td>
+                        <td class="px-4 py-3 font-semibold text-blue-700">${grades['Б']}</td>
+                        <td class="px-4 py-3 font-semibold text-amber-700">${grades['В']}</td>
+                        <td class="px-4 py-3 font-semibold text-red-700">${grades['Г']}</td>
+                        <td class="px-4 py-3 font-bold">${total}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const overallTotal = Object.values(totals).reduce((sum, count) => sum + count, 0);
+            tfoot.innerHTML = `
+                <tr>
+                    <td class="px-4 py-3 text-left">Нийт</td>
+                    <td class="px-4 py-3">${escapeHtml(monthStr)}</td>
+                    <td class="px-4 py-3 text-emerald-700">${totals['А']}</td>
+                    <td class="px-4 py-3 text-blue-700">${totals['Б']}</td>
+                    <td class="px-4 py-3 text-amber-700">${totals['В']}</td>
+                    <td class="px-4 py-3 text-red-700">${totals['Г']}</td>
+                    <td class="px-4 py-3">${overallTotal}</td>
+                </tr>
+            `;
+        }
+
+        function renderManagerApprovalTable(monthStr) {
+            const tbody = document.getElementById('mgrApprovalTableBody');
+            tbody.innerHTML = '';
+
+            SECTIONS.forEach(sec => {
+                const managerNote = db.managerApprovals[`${sec.id}_${monthStr}`];
+                const evaluations = Object.keys(db.engineerEvals)
+                    .filter(key => key.startsWith(`${sec.id}_${monthStr}-`))
+                    .sort()
+                    .map(key => ({
+                        date: key.substring(`${sec.id}_`.length),
+                        ...db.engineerEvals[key]
+                    }));
+
+                let secTasks = 0;
+                let secCompleted = 0;
+                Object.keys(db.plans).forEach(key => {
+                    if (key.startsWith(`${sec.id}_${monthStr}`)) {
+                        db.plans[key].forEach(t => {
+                            secTasks++;
+                            if (t.status === 'Completed') secCompleted++;
+                        });
+                    }
+                });
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-bold text-slate-800">${sec.name}</td>
+                    <td class="px-6 py-4 text-xs">
+                        <div><b>${secTasks}</b> ажил төлөвлөсөн</div>
+                        <div class="text-slate-400">Биелэлт: ${secTasks > 0 ? Math.round((secCompleted / secTasks) * 100) : 0}%</div>
+                    </td>
+                    <td class="px-6 py-4 text-xs">
+                        ${evaluations.length ? `
+                            <div class="space-y-3">
+                                ${evaluations.map(evaluation => `
+                                    <div class="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
+                                        <div class="flex flex-wrap items-center justify-between gap-2">
+                                            <span class="font-semibold text-slate-700">${escapeHtml(evaluation.date)}</span>
+                                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-800">Үнэлгээ: ${escapeHtml(evaluation.qualityGrade || 'Оруулаагүй')}</span>
+                                        </div>
+                                        <div class="grid grid-cols-1 gap-1 text-slate-600 sm:grid-cols-2">
+                                            <div>Төлөвлөгөө: <b>${escapeHtml(evaluation.planStatus || 'Оруулаагүй')}</b></div>
+                                            <div>Хүн хүч: <b>${escapeHtml(evaluation.manpowerStatus || 'Оруулаагүй')}</b></div>
+                                            <div>Технологийн горим: <b>${escapeHtml(evaluation.techStatus || 'Оруулаагүй')}</b></div>
+                                            <div>Цаг агаар: <b>${escapeHtml(evaluation.weatherStatus || 'Оруулаагүй')}</b></div>
+                                            <div>Тоног төхөөрөмж: <b>${escapeHtml(evaluation.equipStatus || 'Оруулаагүй')}</b></div>
+                                        </div>
+                                        <div class="text-slate-600">Инженер: <b>${escapeHtml(evaluation.engineerName || 'Тодорхойгүй')}</b></div>
+                                        <div class="whitespace-pre-wrap text-slate-600">Сэтгэгдэл: ${escapeHtml(evaluation.comment || 'Сэтгэгдэлгүй')}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `<span class="text-slate-400">Инженерийн дүгнэлт оруулаагүй</span>`}
+                    </td>
+                    <td class="px-6 py-4 text-xs">
+                        ${managerNote ? `
+                            <div class="space-y-1">
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${managerNote.acknowledged || managerNote.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">
+                                    ${managerNote.acknowledged || managerNote.status === 'Approved' ? 'Танилцсан' : 'Танилцаагүй'}
+                                </span>
+                                <div class="whitespace-pre-wrap text-slate-600">${escapeHtml(managerNote.comment || 'Сэтгэгдэл үлдээгээгүй')}</div>
+                                <div class="text-[10px] text-slate-400">${escapeHtml(managerNote.managerName || '')} ${escapeHtml(managerNote.date || '')}</div>
+                            </div>
+                        ` : `<span class="text-slate-400">Тэмдэглэл үлдээгээгүй</span>`}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="openManagerModal(${sec.id}, '${sec.name}')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+                            Танилцсан / Сэтгэгдэл
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openManagerModal(sectionId, sectionName) {
+            document.getElementById('mgrApprovalSectionId').value = sectionId;
+            document.getElementById('mgrModalTitle').textContent = `${sectionName} - Танилцсан тэмдэглэл`;
+
+            const monthStr = document.getElementById('managerFilterMonth').value || simulatedDate.substring(0, 7);
+            const approvalKey = `${sectionId}_${monthStr}`;
+            const approval = db.managerApprovals[approvalKey];
+
+            document.getElementById('mgrAcknowledged').checked = Boolean(approval?.acknowledged || approval?.status === 'Approved');
+            document.getElementById('mgrDirectiveComment').value = approval?.comment || '';
+
+            document.getElementById('managerModal').classList.remove('hidden');
+        }
+
+        function closeManagerModal() {
+            document.getElementById('managerModal').classList.add('hidden');
+        }
+
+        function saveManagerApproval(e) {
+            e.preventDefault();
+            const sectionId = document.getElementById('mgrApprovalSectionId').value;
+            const monthStr = document.getElementById('managerFilterMonth').value || simulatedDate.substring(0, 7);
+            const approvalKey = `${sectionId}_${monthStr}`;
+
+            db.managerApprovals[approvalKey] = {
+                managerId: currentUser.id,
+                managerName: currentUser.name,
+                acknowledged: document.getElementById('mgrAcknowledged').checked,
+                comment: document.getElementById('mgrDirectiveComment').value,
+                date: new Date().toISOString().split('T')[0]
+            };
+
+            saveDatabase();
+            closeManagerModal();
+            loadManagerDashboard();
+        }
+    </script>
+</body>
+</html>
