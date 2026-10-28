@@ -481,6 +481,10 @@
             id: i + 1,
             name: SECTION_NAMES[i + 1] || `${i + 1}-р хэсэг`
         }));
+        const SECTION_GROUPS = [
+            { name: 'Замын хэсгүүд', sections: SECTIONS.filter(section => section.id <= 21) },
+            { name: 'Тусгай нэгжүүд', sections: SECTIONS.filter(section => section.id > 21) }
+        ];
         const ENGINEERS = [
             { id: 1, name: 'ПЧИС - Ц. Шинэгэрэл' },
             { id: 2, name: 'ПЧИ-1 - Наранбаатар' },
@@ -1498,7 +1502,11 @@
         }
 
         function renderEngineerPreparationOverview(dateStr) {
-            const rows = SECTIONS.map(section => {
+            const rows = SECTION_GROUPS.map(group => `
+                <tr class="bg-sky-100 text-sky-900">
+                    <th colspan="12" class="border border-slate-400 px-3 py-2 text-left font-bold">${group.name} <span class="font-normal">(${group.sections.length})</span></th>
+                </tr>
+                ${group.sections.map(section => {
                 const preparation = db.preparations[`${section.id}_${dateStr}`];
                 const tasks = db.plans[`${section.id}_${dateStr}`] || [];
                 const work = preparation?.followsPlan === 'no'
@@ -1544,13 +1552,17 @@
                 const reportedOn = reportedAt
                     ? `<span class="block text-[10px] text-slate-400">Илгээсэн: ${escapeHtml(reportedAt)}</span>`
                     : '';
+                const rowStyle = preparation?.followsPlan === 'no'
+                    ? 'bg-rose-50 text-rose-950 border-l-4 border-l-rose-500'
+                    : preparation ? 'bg-white' : 'bg-slate-50 text-slate-500';
+                const followsPlanStyle = preparation?.followsPlan === 'no' ? 'bg-rose-100' : '';
 
                 return `
-                    <tr class="${preparation ? 'bg-white' : 'bg-slate-50 text-slate-500'}">
+                    <tr class="${rowStyle}">
                         <td class="border border-slate-300 px-3 py-2 whitespace-nowrap">${escapeHtml(dateStr)}${reportedOn}</td>
                         <td class="border border-slate-300 px-3 py-2 font-semibold whitespace-nowrap">${escapeHtml(section.name)}</td>
                         <td class="border border-slate-300 px-3 py-2 min-w-48">${work}</td>
-                        <td class="border border-slate-300 px-3 py-2">${followsPlan}</td>
+                        <td class="border border-slate-300 px-3 py-2 ${followsPlanStyle}">${followsPlan}</td>
                         <td class="border border-slate-300 px-3 py-2">${alternative}</td>
                         <td class="border border-slate-300 px-3 py-2">${visibility === 'Хязгаарлагдмал' ? '<span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">Хязгаарлагдмал</span>' : escapeHtml(visibility)}</td>
                         <td class="border border-slate-300 px-3 py-2">${signalman}</td>
@@ -1561,7 +1573,8 @@
                         <td class="border border-slate-300 px-3 py-2 min-w-48 whitespace-pre-wrap">${escapeHtml(reason)}</td>
                     </tr>
                 `;
-            }).join('');
+                }).join('')}
+            `).join('');
             const submittedCount = SECTIONS.filter(section => db.preparations[`${section.id}_${dateStr}`]).length;
 
             return `
