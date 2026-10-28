@@ -136,16 +136,15 @@
                         <span id="sectionTitleBadge" class="bg-sky-100 text-sky-800 text-xs font-bold px-2.5 py-1 rounded-full">1-р хэсэг</span>
                         <h2 class="text-xl font-bold text-slate-800">Сарын ажлын төлөвлөгөө / Гүйцэтгэл</h2>
                     </div>
-                    <p class="text-xs text-slate-500 mt-1">Түр хугацаанд бүх хэсэг бүх өдөр төлөвлөгөө оруулах, засах боломжтой.</p>
+                    <p class="text-xs text-slate-500 mt-1">Түр хугацаанд бүх өдрийн төлөвлөгөө, гүйцэтгэл, маргаашийн бэлтгэлийг оруулж хадгалах боломжтой.</p>
                 </div>
 
                 <div class="flex items-center space-x-3">
                     <input type="month" id="sectionMonthPicker" onchange="changeSectionMonth(this.value)" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none">
                     
-                    <!-- Lock Status Indicator -->
                     <div id="planLockBadge" class="flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
                         <i data-lucide="lock-open" class="w-4 h-4"></i>
-                        <span>Төлөвлөгөө: Түр нээлттэй</span>
+                        <span>Түр хугацаанд бүх өдөр нээлттэй</span>
                     </div>
                 </div>
             </div>
@@ -257,6 +256,7 @@
                     <span>Хэсгүүдийн нэгдсэн жагсаалт ба Төлөв</span>
                     <span class="text-xs text-slate-500 font-normal">Нийт 25 хэсэг</span>
                 </div>
+                <div id="engineerPreparationOverview" class="hidden border-b border-slate-200 p-4"></div>
                 <div class="divide-y divide-slate-200" id="engineerSectionList">
                     <!-- Populated by JS -->
                 </div>
@@ -312,30 +312,6 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-200">
-                    <h3 class="font-bold text-slate-800">Хэсэг тус бүрийн сарын үнэлгээний тоо</h3>
-                    <p id="mgrEvaluationMonthLabel" class="text-xs text-slate-500 mt-1"></p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-center text-sm text-slate-600">
-                        <thead class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-200">
-                            <tr>
-                                <th class="px-4 py-3 text-left">Хэсэг</th>
-                                <th class="px-4 py-3">Сар</th>
-                                <th class="px-4 py-3 text-emerald-700">А — Маш сайн</th>
-                                <th class="px-4 py-3 text-blue-700">Б — Сайн</th>
-                                <th class="px-4 py-3 text-amber-700">В — Дунд</th>
-                                <th class="px-4 py-3 text-red-700">Г — Муу</th>
-                                <th class="px-4 py-3 text-slate-800">Нийт</th>
-                            </tr>
-                        </thead>
-                        <tbody id="mgrEvaluationTableBody" class="divide-y divide-slate-200"></tbody>
-                        <tfoot id="mgrEvaluationTableFoot" class="bg-slate-50 font-bold text-slate-800"></tfoot>
-                    </table>
-                </div>
-            </div>
-
             <!-- Manager Sections Approval Table -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 font-bold text-slate-800 flex justify-between items-center">
@@ -347,7 +323,7 @@
                             <tr>
                                 <th class="px-6 py-3">Хэсэг</th>
                                 <th class="px-6 py-3">Төлөвлөгөө / Гүйцэтгэл</th>
-                                <th class="px-6 py-3">Инженерийн дүгнэлт</th>
+                                <th class="px-6 py-3">Инженерийн сэтгэгдэл</th>
                                 <th class="px-6 py-3">Удирдлагын тэмдэглэл</th>
                                 <th class="px-6 py-3 text-right">Үйлдэл</th>
                             </tr>
@@ -382,25 +358,41 @@
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
                         <h4 class="font-bold text-slate-800 text-sm">Тухайн өдрийн бригадын ажлууд</h4>
-                        <button id="addNewTaskBtn" onclick="addNewTaskRow()" class="text-xs font-semibold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
-                            <i data-lucide="plus" class="w-4 h-4"></i>
-                            <span>Ажил нэмэх</span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="addNewTaskBtn" onclick="addNewTaskRow()" class="text-xs font-semibold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>Ажил нэмэх</span>
+                            </button>
+                            <button id="savePlanBtn" onclick="saveModalPlan()" class="text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                                <span>Төлөвлөгөө хадгалах</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div id="modalTaskList" class="space-y-4">
                         <!-- Task cards inserted by JS -->
                     </div>
+                    <div class="flex justify-end border-t border-slate-200 pt-3">
+                        <span id="planSaveStatus" class="text-xs text-slate-500 mr-auto"></span>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3">
+                        <span id="executionSaveStatus" class="text-xs text-slate-500"></span>
+                        <button id="saveExecutionBtn" onclick="saveModalExecution()" class="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                            <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                            <span>Гүйцэтгэл хадгалах</span>
+                        </button>
+                    </div>
                 </div>
+
+                <section id="tomorrowPreparation" class="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-4">
+                    <!-- Populated dynamically with tomorrow's plan and preparation report -->
+                </section>
             </div>
 
             <!-- Modal Footer -->
             <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
                 <button onclick="closeDayModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-semibold transition">Хаах</button>
-                <button onclick="saveModalTasks()" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-md shadow-sky-600/30 transition flex items-center space-x-2">
-                    <i data-lucide="save" class="w-4 h-4"></i>
-                    <span>Хадгалах</span>
-                </button>
             </div>
         </div>
     </div>
@@ -411,7 +403,7 @@
             <div class="p-5 bg-indigo-900 text-white flex items-center justify-between border-b border-indigo-800">
                 <div>
                     <h3 id="engModalTitle" class="font-bold text-lg">Хэсгийн гүйцэтгэлд дүгнэлт өгөх</h3>
-                    <p class="text-xs text-indigo-300 mt-0.5">Инженерийн 6 тусгай шалгуураар үнэлгээ өгнө</p>
+                    <p class="text-xs text-indigo-300 mt-0.5">Инженерийн сэтгэгдэл, шаардлага үлдээнэ</p>
                 </div>
                 <button onclick="closeEngineerModal()" class="text-indigo-300 hover:text-white p-1 rounded-lg">
                     <i data-lucide="x" class="w-6 h-6"></i>
@@ -422,67 +414,14 @@
                 <input type="hidden" id="engEvalSectionId">
                 <input type="hidden" id="engEvalDate">
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Төлөвлөгөөний дагуу ажилласан уу?</label>
-                        <select id="engSelectPlan" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
-                            <option value="Хангалттай">Хангалттай (Бүрэн дагаж мөрдсөн)</option>
-                            <option value="Дунд">Дунд (Бага зэрэг зөрүүтэй)</option>
-                            <option value="Хангалтгүй">Хангалтгүй (Мөрдөөгүй)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">2. Хүн хүчний хангамж</label>
-                        <select id="engSelectManpower" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
-                            <option value="Хангалттай">Хангалттай (Бүрэн бүрэлдэхүүн)</option>
-                            <option value="Дутагдалтай">Дутагдалтай</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">3. Технологийн горим</label>
-                        <select id="engSelectTech" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
-                            <option value="Бүрэн баримталсан">Бүрэн баримталсан</option>
-                            <option value="Зөрчилтэй">Зөрчил илэрсэн</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">4. Цаг агаарын нөхцөл</label>
-                        <select id="engSelectWeather" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
-                            <option value="Хэвийн">Хэвийн</option>
-                            <option value="Хүндрэлтэй">Хүндрэлтэй (Бороо/Цас/Салхи)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">5. Тоног төхөөрөмж</label>
-                        <select id="engSelectEquip" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
-                            <option value="Хангалттай">Хангалттай</option>
-                            <option value="Дутагдалтай">Дутагдалтай / Гэмтэлтэй</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">6. Ажлын эцсийн чанар</label>
-                        <select id="engSelectQuality" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
-                            <option value="Онц">Онц</option>
-                            <option value="Сайн">Сайн</option>
-                            <option value="Дунд">Дунд</option>
-                            <option value="Муу">Муу</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Инженерийн сэтгэгдэл / Шаардлага</label>
-                    <textarea id="engComment" rows="3" placeholder="Засч сайжруулах шаардлагатай зүйлсийг тодорхой бичих..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <textarea id="engComment" rows="5" placeholder="Сэтгэгдэл, шаардлагаа энд бичнэ үү..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
                 </div>
 
                 <div class="pt-2 flex justify-end space-x-3">
                     <button type="button" onclick="closeEngineerModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold">Цуцлах</button>
-                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-md shadow-indigo-600/30">Дүгнэлт Хадгалах</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-md shadow-indigo-600/30">Сэтгэгдэл хадгалах</button>
                 </div>
             </form>
         </div>
@@ -563,7 +502,8 @@
         ];
 
         // Simulated Date State (Defaults to current system date)
-        let simulatedDate = new Date().toISOString().split('T')[0];
+        const initialLocalDate = new Date();
+        let simulatedDate = `${initialLocalDate.getFullYear()}-${String(initialLocalDate.getMonth() + 1).padStart(2, '0')}-${String(initialLocalDate.getDate()).padStart(2, '0')}`;
 
         // Active Session User
         let currentUser = null;
@@ -571,38 +511,131 @@
         // Reactive Application Database (Loaded from LocalStorage)
         let db = {
             plans: {},      // key: `${sectionId}_${date}` => array of tasks
+            preparations: {}, // key: `${sectionId}_${date}` => next-day preparation report
             engineerEvals: {}, // key: `${sectionId}_${date}` => evaluation object
             managerApprovals: {} // key: `${sectionId}_${monthStr}` => approval object
         };
 
         // Initialize Icons
-        document.addEventListener("DOMContentLoaded", () => {
-            loadDatabase();
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                await loadDatabase();
+            } catch (error) {
+                console.error("Failed to load or initialize the database", error);
+                alert(getDatabaseSaveErrorMessage(error));
+            }
             initDateSimulator();
             setupLoginUserDropdown();
             lucide.createIcons();
         });
 
-        // Load DB from LocalStorage
-        function loadDatabase() {
-            const saved = localStorage.getItem('railway_master_db');
+        const databaseStorageKey = 'railway_master_db';
+
+        function openDatabaseStorage() {
+            return new Promise((resolve, reject) => {
+                if (!window.indexedDB) {
+                    reject(new Error('IndexedDB is unavailable in this browser context.'));
+                    return;
+                }
+
+                let request;
+                try {
+                    request = indexedDB.open('railway_app_storage', 1);
+                } catch (error) {
+                    reject(error);
+                    return;
+                }
+                request.onupgradeneeded = () => {
+                    if (!request.result.objectStoreNames.contains('appData')) {
+                        request.result.createObjectStore('appData');
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error || new Error('Could not open IndexedDB.'));
+                request.onblocked = () => reject(new Error('IndexedDB is blocked by another open tab.'));
+            });
+        }
+
+        async function readDatabaseFromIndexedDB() {
+            const storage = await openDatabaseStorage();
+            return new Promise((resolve, reject) => {
+                const transaction = storage.transaction('appData', 'readonly');
+                const request = transaction.objectStore('appData').get(databaseStorageKey);
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => reject(request.error || new Error('Could not read the saved database.'));
+                transaction.onabort = () => reject(transaction.error || new Error('Could not read the saved database.'));
+                transaction.oncomplete = () => storage.close();
+            });
+        }
+
+        async function writeDatabaseToIndexedDB(serialized) {
+            const storage = await openDatabaseStorage();
+            return new Promise((resolve, reject) => {
+                const transaction = storage.transaction('appData', 'readwrite');
+                transaction.objectStore('appData').put(serialized, databaseStorageKey);
+                transaction.oncomplete = () => {
+                    storage.close();
+                    resolve();
+                };
+                transaction.onerror = () => {
+                    storage.close();
+                    reject(transaction.error || new Error('Could not write the saved database.'));
+                };
+                transaction.onabort = () => {
+                    storage.close();
+                    reject(transaction.error || new Error('Could not write the saved database.'));
+                };
+            });
+        }
+
+        async function loadDatabase() {
+            let saved = null;
+            try {
+                saved = await readDatabaseFromIndexedDB();
+            } catch (error) {
+                console.warn('IndexedDB read failed; trying the previous localStorage database.', error);
+            }
+            if (!saved) {
+                try {
+                    saved = localStorage.getItem(databaseStorageKey);
+                } catch (error) {
+                    console.error('Could not read the localStorage database.', error);
+                }
+            }
             if (saved) {
                 try {
-                    db = JSON.parse(saved);
+                    db = { ...db, ...JSON.parse(saved) };
+                    db.preparations = db.preparations || {};
                 } catch (e) {
-                    console.error("Failed to load local DB", e);
+                    console.error("Failed to parse the saved database", e);
                 }
             } else {
-                // Generate sample seed data for demo
-                seedInitialDemoData();
+                await seedInitialDemoData();
             }
         }
 
-        function saveDatabase() {
-            localStorage.setItem('railway_master_db', JSON.stringify(db));
+        async function saveDatabase() {
+            const serialized = JSON.stringify(db);
+            try {
+                await writeDatabaseToIndexedDB(serialized);
+            } catch (indexedDbError) {
+                try {
+                    localStorage.setItem(databaseStorageKey, serialized);
+                } catch (localStorageError) {
+                    const storageErrors = [indexedDbError, localStorageError];
+                    const primaryError = storageErrors.find(error =>
+                        error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+                    ) || storageErrors.find(error => error.name === 'SecurityError') || localStorageError;
+                    const storageError = new Error(
+                        `IndexedDB save failed: ${indexedDbError.message || indexedDbError}; localStorage save failed: ${localStorageError.message || localStorageError}`
+                    );
+                    storageError.name = primaryError.name || 'StorageError';
+                    throw storageError;
+                }
+            }
         }
 
-        function seedInitialDemoData() {
+        async function seedInitialDemoData() {
             const currentMonth = simulatedDate.substring(0, 7); // YYYY-MM
             // Seed sample task for Section 1
             const sampleDate = `${currentMonth}-04`;
@@ -619,7 +652,7 @@
                     executionNote: 'Төлөвлөгөөний дагуу хийж гүйцэтгэсэн.'
                 }
             ];
-            saveDatabase();
+            await saveDatabase();
         }
 
         // ==========================================
@@ -632,15 +665,25 @@
         function changeSimulatedDate(newDate) {
             simulatedDate = newDate;
             if (currentUser) {
-                if (currentUser.role === 'section') loadSectionPortal();
+                if (currentUser.role === 'section') {
+                    document.getElementById('sectionMonthPicker').value = getDefaultSectionMonth();
+                    loadSectionPortal();
+                }
                 if (currentUser.role === 'engineer') loadEngineerData();
                 if (currentUser.role === 'manager') loadManagerDashboard();
             }
         }
 
-        // Temporarily allow plan editing on every date.
         function isPlanLocked(dateStr) {
-            return false;
+            return !dateStr;
+        }
+
+        function getDefaultSectionMonth() {
+            return simulatedDate.substring(0, 7);
+        }
+
+        function isPreparationLocked(targetDate) {
+            return !targetDate;
         }
 
 
@@ -700,7 +743,7 @@
 
             if (role === 'section') {
                 document.getElementById('sectionPortal').classList.remove('hidden');
-                document.getElementById('sectionMonthPicker').value = simulatedDate.substring(0, 7);
+                document.getElementById('sectionMonthPicker').value = getDefaultSectionMonth();
                 loadSectionPortal();
             } else if (role === 'engineer') {
                 document.getElementById('engineerPortal').classList.remove('hidden');
@@ -755,8 +798,8 @@
             const monthStr = document.getElementById('sectionMonthPicker').value || simulatedDate.substring(0, 7);
             
             const lockBadge = document.getElementById('planLockBadge');
-            lockBadge.className = 'flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200';
-            lockBadge.innerHTML = `<i data-lucide="lock-open" class="w-4 h-4"></i><span>Төлөвлөгөө: Түр нээлттэй</span>`;
+            lockBadge.className = 'flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200';
+            lockBadge.innerHTML = '<i data-lucide="lock-open" class="w-4 h-4"></i><span>Түр хугацаанд бүх өдөр нээлттэй</span>';
 
             renderCalendarGrid(monthStr);
             updateSectionKPIs(monthStr);
@@ -924,18 +967,10 @@
                     card.className = 'bg-white border border-slate-200 p-4 rounded-xl space-y-2 shadow-sm';
                     card.innerHTML = `
                         <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <span class="font-bold text-slate-800 text-sm">${eval.date} - Инженерийн Дүгнэлт</span>
-                            <span class="text-xs font-semibold text-indigo-600">${eval.engineerName}</span>
+                            <span class="font-bold text-slate-800 text-sm">${escapeHtml(eval.date)} - Инженерийн сэтгэгдэл</span>
+                            <span class="text-xs font-semibold text-indigo-600">${escapeHtml(eval.engineerName || 'Инженер')}</span>
                         </div>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                            <div><span class="text-slate-400">Төлөвлөгөө:</span> <b>${eval.planStatus}</b></div>
-                            <div><span class="text-slate-400">Хүн хүч:</span> <b>${eval.manpowerStatus}</b></div>
-                            <div><span class="text-slate-400">Технологи:</span> <b>${eval.techStatus}</b></div>
-                            <div><span class="text-slate-400">Цаг агаар:</span> <b>${eval.weatherStatus}</b></div>
-                            <div><span class="text-slate-400">Тоног төхөөрөмж:</span> <b>${eval.equipStatus}</b></div>
-                            <div><span class="text-slate-400">Чанарын үнэлгээ:</span> <b class="text-indigo-600">${eval.qualityGrade}</b></div>
-                        </div>
-                        ${eval.comment ? `<div class="text-xs bg-slate-50 p-2 rounded text-slate-700 mt-2"><b>Сэтгэгдэл:</b> ${eval.comment}</div>` : ''}
+                        <div class="text-xs bg-slate-50 p-2 rounded text-slate-700 mt-2 whitespace-pre-wrap"><b>Сэтгэгдэл:</b> ${escapeHtml(eval.comment || 'Сэтгэгдэл үлдээгээгүй')}</div>
                     `;
                     container.appendChild(card);
                 }
@@ -952,17 +987,39 @@
         // DAY TASKS MODAL LOGIC (PLANNING & EXECUTION)
         // ==========================================
         let currentModalDate = null;
+        let modalTaskDrafts = [];
+        let modalPersistedTaskIds = [];
+        let modalPreparationDraft = null;
+        let modalPreparationTargetDate = null;
 
         function openDayModal(dateStr) {
             currentModalDate = dateStr;
-            const locked = isPlanLocked(dateStr);
+            const planLocked = isPlanLocked(dateStr);
+            const executionLocked = false;
+            const planKey = `${currentUser.id}_${dateStr}`;
+            const savedTasks = db.plans[planKey] || [];
+            modalPersistedTaskIds = savedTasks.map((task, index) => task.id || `legacy_${index}`);
+            modalTaskDrafts = savedTasks.map((task, index) => ({
+                ...task,
+                id: modalPersistedTaskIds[index]
+            }));
+            modalPreparationTargetDate = shiftDate(dateStr, 1);
+            modalPreparationDraft = {
+                ...(db.preparations[`${currentUser.id}_${modalPreparationTargetDate}`] || {})
+            };
 
             document.getElementById('modalDateTitle').textContent = `${dateStr}-ний ажлын төлөвлөгөө ба гүйцэтгэл`;
-            document.getElementById('modalLockSubtitle').textContent = 'Түр хугацаанд бүх өдөр төлөвлөгөө оруулах, засах боломжтой';
+            document.getElementById('modalLockSubtitle').textContent = planLocked || executionLocked
+                ? 'Энэ өдөр мэдээлэл оруулах боломжгүй.'
+                : 'Түр хугацаанд төлөвлөгөө, гүйцэтгэл, маргаашийн бэлтгэлийг оруулж хадгална.';
 
-            document.getElementById('addNewTaskBtn').style.display = locked ? 'none' : 'inline-flex';
+            document.getElementById('addNewTaskBtn').style.display = planLocked ? 'none' : 'inline-flex';
+            document.getElementById('savePlanBtn').style.display = planLocked ? 'none' : 'inline-flex';
+            document.getElementById('saveExecutionBtn').disabled = savedTasks.length === 0;
+            document.getElementById('planSaveStatus').textContent = '';
+            document.getElementById('executionSaveStatus').textContent = '';
 
-            renderModalTaskRows(dateStr, locked);
+            renderModalTaskRows(dateStr, planLocked, executionLocked);
             document.getElementById('dayModal').classList.remove('hidden');
             lucide.createIcons();
         }
@@ -971,15 +1028,21 @@
             document.getElementById('dayModal').classList.add('hidden');
         }
 
-        function renderModalTaskRows(dateStr, locked) {
+        function shiftDate(dateStr, days) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month - 1, day + days);
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function renderModalTaskRows(dateStr, planLocked, executionLocked) {
             const container = document.getElementById('modalTaskList');
             container.innerHTML = '';
 
-            const planKey = `${currentUser.id}_${dateStr}`;
-            const tasks = db.plans[planKey] || [];
+            const tasks = modalTaskDrafts;
 
-            if (tasks.length === 0 && locked) {
-                container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">Энэ өдөрт анхнаас нь ажил төлөвлөөгүй байна.</div>`;
+            if (tasks.length === 0 && planLocked) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">${executionLocked ? 'Энэ өдөрт ажил төлөвлөөгүй байна.' : 'Төлөвлөгөө оруулаагүй байна. Сарын сүүлийн 7 хоногт дараа сарын ажлыг төлөвлөнө.'}</div>`;
+                renderTomorrowPreparation(dateStr);
                 return;
             }
 
@@ -990,7 +1053,7 @@
                 card.innerHTML = `
                     <div class="flex items-center justify-between border-b border-slate-200 pb-2">
                         <span class="text-xs font-bold text-sky-800 uppercase">Ажил #${index + 1}</span>
-                        ${!locked ? `
+                        ${!planLocked ? `
                             <button onclick="removeTaskRow(${index})" class="text-red-500 hover:text-red-700 text-xs flex items-center space-x-1">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                 <span>Устгах</span>
@@ -1002,21 +1065,21 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Тасаг / Бригад</label>
-                            <input type="text" data-field="brigade" data-index="${index}" value="${task.brigade || '1-р тасаг'}" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs font-semibold focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                            <input type="text" data-field="brigade" data-index="${index}" value="${task.brigade || '1-р тасаг'}" ${planLocked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs font-semibold focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Байршил (Км / Зуут)</label>
-                            <input type="text" data-field="location" data-index="${index}" value="${task.location || ''}" placeholder="Замын км, өртөө" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                            <input type="text" data-field="location" data-index="${index}" value="${task.location || ''}" placeholder="Замын км, өртөө" ${planLocked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Гүйцэтгэх ажил</label>
-                            <input type="text" data-field="taskName" data-index="${index}" value="${task.taskName || ''}" placeholder="Ажлын нэр" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs font-semibold focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                            <input type="text" data-field="taskName" data-index="${index}" value="${task.taskName || ''}" placeholder="Ажлын нэр" ${planLocked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs font-semibold focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Хүн хүч / Дохиочин</label>
                             <div class="grid grid-cols-2 gap-1">
-                                <input type="number" data-field="manpower" data-index="${index}" value="${task.manpower || 0}" placeholder="Хүн" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
-                                <input type="text" data-field="signalman" data-index="${index}" value="${task.signalman || ''}" placeholder="Дохиочин" ${locked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                                <input type="number" data-field="manpower" data-index="${index}" value="${task.manpower || 0}" placeholder="Хүн" ${planLocked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
+                                <input type="text" data-field="signalman" data-index="${index}" value="${task.signalman || ''}" placeholder="Дохиочин" ${planLocked ? 'disabled' : ''} class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-600">
                             </div>
                         </div>
                     </div>
@@ -1030,7 +1093,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-[10px] text-slate-500 mb-1">Гүйцэтгэлийн төлөв (Select)</label>
-                                <select data-field="status" data-index="${index}" class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs font-semibold focus:ring-1 focus:ring-sky-500">
+                                <select data-field="status" data-index="${index}" ${executionLocked ? 'disabled' : ''} class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs font-semibold focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100">
                                     <option value="Uncompleted" ${task.status === 'Uncompleted' ? 'selected' : ''}>Хийгдээгүй (0%)</option>
                                     <option value="Partial" ${task.status === 'Partial' ? 'selected' : ''}>Хэсэгчлэн биелсэн (50-90%)</option>
                                     <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Биелсэн (100%)</option>
@@ -1038,24 +1101,134 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] text-slate-500 mb-1">Бодит оролцсон хүн хүч</label>
-                                <input type="number" data-field="actualManpower" data-index="${index}" value="${task.actualManpower || task.manpower || 0}" class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs focus:ring-1 focus:ring-sky-500">
+                                <input type="number" data-field="actualManpower" data-index="${index}" value="${task.actualManpower || task.manpower || 0}" ${executionLocked ? 'disabled' : ''} class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100">
                             </div>
                             <div>
                                 <label class="block text-[10px] text-slate-500 mb-1">Гүйцэтгэлийн тайлбар / Сэтгэгдэл</label>
-                                <input type="text" data-field="executionNote" data-index="${index}" value="${task.executionNote || ''}" placeholder="Тайбарыг энд бичнэ үү" class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs focus:ring-1 focus:ring-sky-500">
+                                <input type="text" data-field="executionNote" data-index="${index}" value="${task.executionNote || ''}" placeholder="Тайлбарыг энд бичнэ үү" ${executionLocked ? 'disabled' : ''} class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100">
                             </div>
                         </div>
                     </div>
                 `;
                 container.appendChild(card);
             });
+
+            renderTomorrowPreparation(dateStr);
+        }
+
+        function renderTomorrowPreparation(dateStr) {
+            const targetDate = shiftDate(dateStr, 1);
+            const preparationLocked = isPreparationLocked(targetDate);
+            const reportKey = `${currentUser.id}_${targetDate}`;
+            const report = modalPreparationDraft || db.preparations[reportKey] || {};
+            const plannedTasks = db.plans[reportKey] || [];
+            const container = document.getElementById('tomorrowPreparation');
+            const fieldDisabled = preparationLocked ? 'disabled' : '';
+            const selectField = (field, label, options, value, onChange = '') => `
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">${label}</label>
+                    <select data-preparation="${field}" ${onChange ? `onchange="${onChange}"` : ''} ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                        ${options.map(option => `<option value="${option.value}" ${value === option.value ? 'selected' : ''}>${option.label}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            const yesNo = [
+                { value: 'yes', label: 'Тийм' },
+                { value: 'no', label: 'Үгүй' }
+            ];
+            const followsPlan = report.followsPlan || (plannedTasks.length ? 'yes' : 'no');
+            const plannedTasksHtml = plannedTasks.length
+                ? plannedTasks.map((task, index) => `
+                    <div class="rounded-lg border border-amber-100 bg-white p-3 text-xs">
+                        <div class="font-semibold text-slate-800">Ажил #${index + 1}: ${escapeHtml(task.taskName || 'Ажлын нэр оруулаагүй')}</div>
+                        <div class="mt-1 text-slate-600">${escapeHtml(task.brigade || 'Бригад тодорхойгүй')} · ${escapeHtml(task.location || 'Байршил оруулаагүй')} · ${escapeHtml(task.manpower ?? 0)} хүн</div>
+                        <div class="mt-1 text-slate-500">Дохиочин: ${escapeHtml(task.signalman || 'Тодорхойгүй')}</div>
+                    </div>
+                `).join('')
+                : '<p class="text-xs text-slate-500">Маргаашийн төлөвлөгөөт ажил оруулаагүй байна. Календарь дээр маргаашийн өдрийг нээж ажил нэмнэ үү.</p>';
+
+            container.innerHTML = `
+                <div class="flex flex-wrap items-start justify-between gap-2 border-b border-amber-200 pb-3">
+                    <div>
+                        <h4 class="font-bold text-amber-950 text-sm">Маргаашийн ажлын бэлтгэл · ${targetDate}</h4>
+                        <p class="text-[11px] text-amber-800 mt-1">Төлөвлөгөө, гүйцэтгэлийн мэдээллийг хамт хадгалж инженерт илгээнэ.</p>
+                    </div>
+                    ${report.reportedOn ? `<span class="text-[10px] text-amber-800">Илгээсэн: ${escapeHtml(report.reportedOn)}</span>` : ''}
+                </div>
+                <div class="space-y-2">
+                    <div class="text-[11px] font-bold text-slate-700 uppercase">Маргаашийн төлөвлөгөөт ажил</div>
+                    ${plannedTasksHtml}
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    ${selectField('followsPlan', 'Төлөвлөгөөний дагуу ажиллах эсэх', yesNo, followsPlan, 'toggleAlternativeWorkFields(this.value)')}
+                    ${selectField('visibility', 'Үзэгдэх орчин', [
+                        { value: 'normal', label: 'Хэвийн' },
+                        { value: 'limited', label: 'Хязгаарлагдмал' }
+                    ], report.visibility || 'normal')}
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Маргааш ажиллах замчин / дохиочин</label>
+                        <input type="text" data-preparation="signalman" value="${escapeHtml(report.signalman || '')}" placeholder="Нэр, овог" ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                    </div>
+                    ${selectField('manpowerSufficient', 'Хүн хүч хангалттай эсэх', yesNo, report.manpowerSufficient || 'yes')}
+                    ${selectField('additionalSignalman', 'Нэмэлт дохиочин ажиллах эсэх', yesNo, report.additionalSignalman || 'no')}
+                    ${selectField('tetraRadio', 'Тетра станц байрлуулах эсэх', yesNo, report.tetraRadio || 'yes')}
+                    ${selectField('protection', 'Хорио, хамгаалалт байрлуулах эсэх', yesNo, report.protection || 'yes')}
+                    <div id="alternativeWorkFields" class="${followsPlan === 'no' ? '' : 'hidden'} sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Төлөвлөгөөнөөс өөр байршил</label>
+                            <input type="text" data-preparation="alternativeLocation" value="${escapeHtml(report.alternativeLocation || '')}" placeholder="Замын км, өртөө" ${followsPlan === 'no' ? 'required' : ''} ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Төлөвлөгөөний бус ажил</label>
+                            <input type="text" data-preparation="alternativeTask" value="${escapeHtml(report.alternativeTask || '')}" placeholder="Ажлын нэр" ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Нэмэлт дохиочны нэр</label>
+                        <input type="text" data-preparation="additionalSignalmanName" value="${escapeHtml(report.additionalSignalmanName || '')}" placeholder="Нэр, овог" ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Ажил өөрчлөгдсөн шалтгаан / нэмэлт тайлбар</label>
+                        <textarea data-preparation="changeReason" rows="2" placeholder="Өөрчлөлтийн шалтгаан, хүн хүчний нэмэлт хэрэгцээ болон бусад тайлбар" ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">${escapeHtml(report.changeReason || '')}</textarea>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-amber-200 pt-3">
+                    <span id="preparationSaveStatus" class="text-xs text-amber-800"></span>
+                    <button id="savePreparationBtn" onclick="saveTomorrowPreparation()" ${preparationLocked ? 'disabled' : ''} class="text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                        <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                        <span>Маргаашийн бэлтгэл хадгалах</span>
+                    </button>
+                </div>
+            `;
+        }
+
+        function toggleAlternativeWorkFields(followsPlan) {
+            const container = document.getElementById('alternativeWorkFields');
+            const locationInput = container.querySelector('[data-preparation="alternativeLocation"]');
+            container.classList.toggle('hidden', followsPlan !== 'no');
+            locationInput.required = followsPlan === 'no';
+        }
+
+        function syncModalInputsToState() {
+            document.querySelectorAll('#modalTaskList [data-field]').forEach(input => {
+                const index = Number(input.getAttribute('data-index'));
+                const field = input.getAttribute('data-field');
+                if (modalTaskDrafts[index]) {
+                    modalTaskDrafts[index][field] = input.value;
+                }
+            });
+
+            document.querySelectorAll('#tomorrowPreparation [data-preparation]').forEach(input => {
+                if (modalPreparationDraft) {
+                    modalPreparationDraft[input.getAttribute('data-preparation')] = input.value;
+                }
+            });
         }
 
         function addNewTaskRow() {
-            const planKey = `${currentUser.id}_${currentModalDate}`;
-            if (!db.plans[planKey]) db.plans[planKey] = [];
-            
-            db.plans[planKey].push({
+            if (isPlanLocked(currentModalDate)) return;
+            syncModalInputsToState();
+            modalTaskDrafts.push({
                 id: 'task_' + Date.now(),
                 brigade: '1-р тасаг',
                 location: '',
@@ -1067,36 +1240,155 @@
                 executionNote: ''
             });
 
-            renderModalTaskRows(currentModalDate, false);
+            renderModalTaskRows(currentModalDate, isPlanLocked(currentModalDate), false);
+            document.getElementById('saveExecutionBtn').disabled = !modalTaskDrafts.some(task => modalPersistedTaskIds.includes(task.id));
             lucide.createIcons();
         }
 
         function removeTaskRow(index) {
-            const planKey = `${currentUser.id}_${currentModalDate}`;
-            if (db.plans[planKey]) {
-                db.plans[planKey].splice(index, 1);
-                renderModalTaskRows(currentModalDate, false);
+            if (isPlanLocked(currentModalDate)) return;
+            syncModalInputsToState();
+            if (modalTaskDrafts[index]) {
+                modalTaskDrafts.splice(index, 1);
+                renderModalTaskRows(currentModalDate, isPlanLocked(currentModalDate), false);
+                document.getElementById('saveExecutionBtn').disabled = !modalTaskDrafts.some(task => modalPersistedTaskIds.includes(task.id));
                 lucide.createIcons();
             }
         }
 
-        function saveModalTasks() {
+        async function saveModalPlan() {
+            if (!currentUser || !currentModalDate) {
+                setModalSaveStatus('planSaveStatus', 'Хадгалах өдөр эсвэл хэсэг сонгогдоогүй байна.', 'text-xs text-red-700');
+                return;
+            }
+            if (isPlanLocked(currentModalDate)) {
+                setModalSaveStatus('planSaveStatus', 'Төлөвлөгөөний хугацаа дууссан тул засварлах боломжгүй.', 'text-xs text-red-700');
+                return;
+            }
+            syncModalInputsToState();
             const planKey = `${currentUser.id}_${currentModalDate}`;
-            if (!db.plans[planKey]) db.plans[planKey] = [];
-
-            const inputs = document.querySelectorAll('#modalTaskList [data-field]');
-            inputs.forEach(input => {
-                const field = input.getAttribute('data-field');
-                const index = parseInt(input.getAttribute('data-index'));
-
-                if (db.plans[planKey][index]) {
-                    db.plans[planKey][index][field] = input.value;
+            const savedTasks = db.plans[planKey] || [];
+            const previousPlan = db.plans[planKey];
+            const updatedTasks = modalTaskDrafts.map(draft => {
+                const previousIndex = modalPersistedTaskIds.indexOf(draft.id);
+                const previousTask = previousIndex >= 0 ? savedTasks[previousIndex] : null;
+                return {
+                    ...(previousTask || {}),
+                    id: previousTask?.id || draft.id,
+                    brigade: draft.brigade,
+                    location: draft.location,
+                    taskName: draft.taskName,
+                    manpower: draft.manpower,
+                    signalman: draft.signalman,
+                    status: previousTask?.status || draft.status || 'Uncompleted',
+                    actualManpower: previousTask?.actualManpower ?? draft.actualManpower ?? draft.manpower ?? 0,
+                    executionNote: previousTask?.executionNote ?? draft.executionNote ?? ''
+                };
+            });
+            db.plans[planKey] = updatedTasks;
+            try {
+                await saveDatabase();
+            } catch (error) {
+                console.error('Failed to save section plan', error);
+                if (previousPlan) {
+                    db.plans[planKey] = previousPlan;
+                } else {
+                    delete db.plans[planKey];
                 }
+                setModalSaveStatus('planSaveStatus', getDatabaseSaveErrorMessage(error), 'text-xs text-red-700');
+                return;
+            }
+
+            modalPersistedTaskIds = updatedTasks.map((task, index) => task.id || `legacy_${index}`);
+            modalTaskDrafts = updatedTasks.map((task, index) => ({
+                ...task,
+                id: modalPersistedTaskIds[index]
+            }));
+            document.getElementById('saveExecutionBtn').disabled = modalTaskDrafts.length === 0;
+            setModalSaveStatus('planSaveStatus', 'Төлөвлөгөө хадгалагдлаа.', 'text-xs text-emerald-700');
+            loadSectionPortal();
+        }
+
+        function getDatabaseSaveErrorMessage(error) {
+            if (error?.name === 'QuotaExceededError' || error?.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                return 'Хөтчийн хадгалах зай дүүрсэн тул хадгалж чадсангүй. Хуучин мэдээллээ нөөцөлж аваад зай чөлөөлөх эсвэл өөр хөтчөөр нээнэ үү.';
+            }
+            if (error?.name === 'SecurityError') {
+                return 'Хөтөч хадгалах зөвшөөрөл өгөөгүй байна. Chrome/Edge дээр localhost хаягаар нээж, site data-г зөвшөөрөөд дахин оролдоно уу.';
+            }
+            if (error instanceof TypeError) {
+                return 'Өгөгдлийг хадгалах форматад хувиргаж чадсангүй. Консолын алдааг шалгах эсвэл дахин ачаалаад оролдоно уу.';
+            }
+            return `Хөтчийн хадгалалт амжилтгүй боллоо: ${error?.message || 'хадгалалтын алдаа'}. Оруулсан мэдээллийг хадгалаагүй; хуудсыг хаахаас өмнө алдааг шийднэ үү.`;
+        }
+
+        async function saveModalExecution() {
+            syncModalInputsToState();
+            const planKey = `${currentUser.id}_${currentModalDate}`;
+            const savedTasks = db.plans[planKey] || [];
+            const previousTasks = savedTasks.map(task => ({ ...task }));
+            const executionFields = ['status', 'actualManpower', 'executionNote'];
+            let updatedCount = 0;
+
+            modalTaskDrafts.forEach(draft => {
+                const savedIndex = modalPersistedTaskIds.indexOf(draft.id);
+                if (savedIndex < 0 || !savedTasks[savedIndex]) return;
+                executionFields.forEach(field => {
+                    savedTasks[savedIndex][field] = draft[field];
+                });
+                updatedCount++;
             });
 
-            saveDatabase();
-            closeDayModal();
+            if (!updatedCount) {
+                alert('Гүйцэтгэл хадгалахын өмнө төлөвлөгөөг хадгална уу.');
+                return;
+            }
+
+            try {
+                await saveDatabase();
+                setModalSaveStatus('executionSaveStatus', 'Гүйцэтгэл хадгалагдлаа.', 'text-xs text-emerald-700');
+            } catch (error) {
+                console.error('Failed to save section execution', error);
+                db.plans[planKey] = previousTasks;
+                setModalSaveStatus('executionSaveStatus', getDatabaseSaveErrorMessage(error), 'text-xs text-red-700');
+            }
             loadSectionPortal();
+        }
+
+        async function saveTomorrowPreparation() {
+            if (!modalPreparationDraft || isPreparationLocked(modalPreparationTargetDate)) return;
+            syncModalInputsToState();
+            if (modalPreparationDraft.followsPlan === 'no' && !String(modalPreparationDraft.alternativeLocation || '').trim()) {
+                alert('Төлөвлөгөөний бус ажилд байршлыг заавал оруулна уу.');
+                return;
+            }
+
+            const preparationKey = `${currentUser.id}_${modalPreparationTargetDate}`;
+            const previousPreparation = db.preparations[preparationKey];
+            db.preparations[preparationKey] = {
+                ...modalPreparationDraft,
+                reportedOn: simulatedDate,
+                reportedAt: new Date().toISOString(),
+                reportedBy: currentUser.name
+            };
+            try {
+                await saveDatabase();
+                setModalSaveStatus('preparationSaveStatus', 'Маргаашийн бэлтгэл хадгалагдлаа.', 'text-xs text-emerald-700');
+            } catch (error) {
+                console.error('Failed to save tomorrow preparation', error);
+                if (previousPreparation) {
+                    db.preparations[preparationKey] = previousPreparation;
+                } else {
+                    delete db.preparations[preparationKey];
+                }
+                setModalSaveStatus('preparationSaveStatus', getDatabaseSaveErrorMessage(error), 'text-xs text-red-700');
+            }
+        }
+
+        function setModalSaveStatus(elementId, message, className) {
+            const status = document.getElementById(elementId);
+            status.textContent = message;
+            status.className = className;
         }
 
 
@@ -1157,21 +1449,174 @@
             }).join('');
         }
 
+        function renderEngineerPreparationCard(preparation, plannedTasks, dateStr) {
+            const answer = value => value === 'yes' ? 'Тийм' : value === 'no' ? 'Үгүй' : 'Оруулаагүй';
+            const plannedWork = plannedTasks.length
+                ? `<div class="space-y-2">${plannedTasks.map((task, index) => `
+                    <div class="rounded-lg border border-slate-200 bg-white p-3">
+                        <div class="font-semibold text-slate-800">Ажил #${index + 1}: ${escapeHtml(task.taskName || 'Ажлын нэр оруулаагүй')}</div>
+                        <div class="mt-1 text-slate-600">${escapeHtml(task.brigade || 'Бригад тодорхойгүй')} · ${escapeHtml(task.location || 'Байршил оруулаагүй')} · ${escapeHtml(task.manpower ?? 0)} хүн</div>
+                        <div class="mt-1 text-slate-500">Төлөвлөсөн дохиочин: ${escapeHtml(task.signalman || 'Оруулаагүй')}</div>
+                    </div>
+                `).join('')}</div>`
+                : '<p class="text-slate-500">Төлөвлөгөөт ажил бүртгэгдээгүй.</p>';
+
+            if (!preparation) {
+                return `
+                    <section class="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2 text-xs">
+                        <h4 class="font-bold text-amber-950">Тухайн өдрийн ажлын бэлтгэл · ${escapeHtml(dateStr)}</h4>
+                        ${plannedWork}
+                        <p class="text-amber-800">Хэсгээс тухайн өдрийн ажлын бэлтгэлийн мэдээлэл ирүүлээгүй байна.</p>
+                    </section>
+                `;
+            }
+
+            return `
+                <section class="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3 text-xs">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h4 class="font-bold text-amber-950">Тухайн өдрийн ажлын бэлтгэл · ${escapeHtml(dateStr)}</h4>
+                        <span class="text-[10px] text-amber-800">Илгээсэн: ${escapeHtml(preparation.reportedOn || 'Тодорхойгүй')} · ${escapeHtml(preparation.reportedBy || 'Хэсэг')}</span>
+                    </div>
+                    <div>
+                        <div class="mb-2 font-semibold text-slate-700">Төлөвлөгөөт ажил</div>
+                        ${plannedWork}
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div><span class="text-slate-500">Төлөвлөгөөний дагуу:</span> <b>${answer(preparation.followsPlan)}</b></div>
+                        <div><span class="text-slate-500">Үзэгдэх орчин:</span> <b>${preparation.visibility === 'normal' ? 'Хэвийн' : preparation.visibility === 'limited' ? 'Хязгаарлагдмал' : 'Оруулаагүй'}</b></div>
+                        <div><span class="text-slate-500">Замчин / дохиочин:</span> <b>${escapeHtml(preparation.signalman || 'Оруулаагүй')}</b></div>
+                        <div><span class="text-slate-500">Хүн хүч хангалттай:</span> <b>${answer(preparation.manpowerSufficient)}</b></div>
+                        <div><span class="text-slate-500">Нэмэлт дохиочин:</span> <b>${answer(preparation.additionalSignalman)}${preparation.additionalSignalmanName ? ` · ${escapeHtml(preparation.additionalSignalmanName)}` : ''}</b></div>
+                        <div><span class="text-slate-500">Тетра станц:</span> <b>${answer(preparation.tetraRadio)}</b></div>
+                        <div><span class="text-slate-500">Хорио, хамгаалалт:</span> <b>${answer(preparation.protection)}</b></div>
+                        <div><span class="text-slate-500">Өөр байршил:</span> <b>${escapeHtml(preparation.alternativeLocation || 'Байхгүй')}</b></div>
+                        <div class="sm:col-span-2"><span class="text-slate-500">Төлөвлөгөөний бус ажил:</span> <b>${escapeHtml(preparation.alternativeTask || 'Байхгүй')}</b></div>
+                    </div>
+                    <div class="whitespace-pre-wrap"><span class="text-slate-500">Өөрчлөлтийн шалтгаан / тайлбар:</span> ${escapeHtml(preparation.changeReason || 'Тайлбар оруулаагүй')}</div>
+                </section>
+            `;
+        }
+
+        function renderEngineerPreparationOverview(dateStr) {
+            const rows = SECTIONS.map(section => {
+                const preparation = db.preparations[`${section.id}_${dateStr}`];
+                const tasks = db.plans[`${section.id}_${dateStr}`] || [];
+                const work = preparation?.followsPlan === 'no'
+                    ? escapeHtml(preparation.alternativeTask || 'Төлөвлөгөөний бус ажил оруулаагүй')
+                    : tasks.length
+                        ? tasks.map(task => `${escapeHtml(task.taskName || 'Ажил оруулаагүй')}${task.location ? ` · ${escapeHtml(task.location)}` : ''}`).join('<br>')
+                        : 'Төлөвлөгөөт ажил оруулаагүй';
+                const answerBadge = value => {
+                    if (value === 'yes') {
+                        return '<span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">Тийм</span>';
+                    }
+                    if (value === 'no') {
+                        return '<span class="inline-flex rounded-full bg-rose-100 px-2 py-0.5 font-semibold text-rose-800">Үгүй</span>';
+                    }
+                    return '<span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">Мэдээлэлгүй</span>';
+                };
+                const visibility = preparation?.visibility === 'normal'
+                    ? 'Хэвийн'
+                    : preparation?.visibility === 'limited' ? 'Хязгаарлагдмал' : 'Мэдээлэлгүй';
+                const followsPlan = preparation
+                    ? preparation.followsPlan === 'no'
+                        ? '<span class="inline-flex rounded-full bg-rose-100 px-2 py-0.5 font-semibold text-rose-800">Төлөвлөгөөний бус</span>'
+                        : preparation.followsPlan === 'yes'
+                            ? '<span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">Төлөвлөгөөний дагуу</span>'
+                            : '<span class="text-slate-400">Мэдээлэлгүй</span>'
+                    : '<span class="text-slate-400">Мэдээлэл ирүүлээгүй</span>';
+                const signalman = preparation ? escapeHtml(preparation.signalman || 'Дохиочин оруулаагүй') : 'Мэдээлэл ирүүлээгүй';
+                const additionalSignalman = preparation
+                    ? `${answerBadge(preparation.additionalSignalman)}${preparation.additionalSignalman === 'yes' ? `<br>${escapeHtml(preparation.additionalSignalmanName || 'Нэр оруулаагүй')}` : ''}`
+                    : 'Мэдээлэл ирүүлээгүй';
+                const manpower = preparation ? answerBadge(preparation.manpowerSufficient) : 'Мэдээлэл ирүүлээгүй';
+                const protection = preparation ? answerBadge(preparation.protection) : 'Мэдээлэл ирүүлээгүй';
+                const radio = preparation
+                    ? `${answerBadge(preparation.tetraRadio)}${preparation.tetraRadio === 'yes' ? '<br><span class="text-slate-600">Тетра станц</span>' : ''}`
+                    : 'Мэдээлэл ирүүлээгүй';
+                const alternative = preparation?.followsPlan === 'no'
+                    ? `${escapeHtml(preparation.alternativeLocation || 'Байршил оруулаагүй')}${preparation.alternativeTask ? `<br>${escapeHtml(preparation.alternativeTask)}` : ''}`
+                    : '—';
+                const reason = preparation?.changeReason || '—';
+                const reportedAt = preparation?.reportedAt
+                    ? new Date(preparation.reportedAt).toLocaleString('mn-MN', { dateStyle: 'short', timeStyle: 'short' })
+                    : preparation?.reportedOn || '';
+                const reportedOn = reportedAt
+                    ? `<span class="block text-[10px] text-slate-400">Илгээсэн: ${escapeHtml(reportedAt)}</span>`
+                    : '';
+
+                return `
+                    <tr class="${preparation ? 'bg-white' : 'bg-slate-50 text-slate-500'}">
+                        <td class="border border-slate-300 px-3 py-2 whitespace-nowrap">${escapeHtml(dateStr)}${reportedOn}</td>
+                        <td class="border border-slate-300 px-3 py-2 font-semibold whitespace-nowrap">${escapeHtml(section.name)}</td>
+                        <td class="border border-slate-300 px-3 py-2 min-w-48">${work}</td>
+                        <td class="border border-slate-300 px-3 py-2">${followsPlan}</td>
+                        <td class="border border-slate-300 px-3 py-2">${alternative}</td>
+                        <td class="border border-slate-300 px-3 py-2">${visibility === 'Хязгаарлагдмал' ? '<span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">Хязгаарлагдмал</span>' : escapeHtml(visibility)}</td>
+                        <td class="border border-slate-300 px-3 py-2">${signalman}</td>
+                        <td class="border border-slate-300 px-3 py-2">${additionalSignalman}</td>
+                        <td class="border border-slate-300 px-3 py-2">${manpower}</td>
+                        <td class="border border-slate-300 px-3 py-2">${protection}</td>
+                        <td class="border border-slate-300 px-3 py-2">${radio}</td>
+                        <td class="border border-slate-300 px-3 py-2 min-w-48 whitespace-pre-wrap">${escapeHtml(reason)}</td>
+                    </tr>
+                `;
+            }).join('');
+            const submittedCount = SECTIONS.filter(section => db.preparations[`${section.id}_${dateStr}`]).length;
+
+            return `
+                <section>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3">
+                        <div>
+                            <h3 class="font-bold text-slate-800">Маргаашийн ажлын нэгдсэн мэдээлэл · ${escapeHtml(dateStr)}</h3>
+                            <p class="text-xs text-slate-500 mt-1">Бүх хэсгийн төлөвлөгөө болон ирүүлсэн бэлтгэлийн асуумж.</p>
+                        </div>
+                        <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">${submittedCount} / ${SECTIONS.length} хэсэг мэдээлэл ирүүлсэн</span>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-slate-300">
+                        <table class="w-full min-w-[1450px] border-collapse text-center text-xs text-slate-700">
+                            <thead class="bg-yellow-300 text-slate-900">
+                                <tr>
+                                    <th class="border border-slate-400 px-3 py-3">Огноо, цаг</th>
+                                    <th class="border border-slate-400 px-3 py-3">Хэсэг</th>
+                                    <th class="border border-slate-400 px-3 py-3">Төлөвлөгөөт ажил</th>
+                                    <th class="border border-slate-400 px-3 py-3">Төлөвлөгөөний дагуу эсэх</th>
+                                    <th class="border border-slate-400 px-3 py-3">Төлөвлөгөөний бус ажил / байршил</th>
+                                    <th class="border border-slate-400 px-3 py-3">Үзэгдэх орчин</th>
+                                    <th class="border border-slate-400 px-3 py-3">Дохиочин</th>
+                                    <th class="border border-slate-400 px-3 py-3">Нэмэлт дохиочин</th>
+                                    <th class="border border-slate-400 px-3 py-3">Хүн хүч хангалттай эсэх</th>
+                                    <th class="border border-slate-400 px-3 py-3">Хорио, хамгаалалт</th>
+                                    <th class="border border-slate-400 px-3 py-3">Тетра станц</th>
+                                    <th class="border border-slate-400 px-3 py-3">Ажил өөрчлөгдсөн шалтгаан</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </section>
+            `;
+        }
+
         function loadEngineerData() {
             document.getElementById('engineerTitleBadge').textContent = currentUser.name;
             const viewMode = document.getElementById('engineerViewMode').value;
             const filterDate = document.getElementById('engineerFilterDate').value || simulatedDate;
             const filterMonth = document.getElementById('engineerFilterMonth').value || simulatedDate.substring(0, 7);
             const listContainer = document.getElementById('engineerSectionList');
+            const preparationOverview = document.getElementById('engineerPreparationOverview');
+            preparationOverview.classList.toggle('hidden', viewMode !== 'day');
+            preparationOverview.innerHTML = viewMode === 'day' ? renderEngineerPreparationOverview(filterDate) : '';
             listContainer.innerHTML = '';
 
             SECTIONS.forEach(sec => {
                 const dayTasks = viewMode === 'day' ? (db.plans[`${sec.id}_${filterDate}`] || []) : [];
+                const dayPreparation = viewMode === 'day' ? db.preparations[`${sec.id}_${filterDate}`] : null;
                 const dayEval = viewMode === 'day' ? db.engineerEvals[`${sec.id}_${filterDate}`] : null;
                 const managerNoteMonth = viewMode === 'day' ? filterDate.substring(0, 7) : filterMonth;
                 const managerNote = db.managerApprovals[`${sec.id}_${managerNoteMonth}`];
                 const days = viewMode === 'month'
-                    ? Object.keys({ ...db.plans, ...db.engineerEvals })
+                    ? Object.keys({ ...db.plans, ...db.engineerEvals, ...db.preparations })
                         .filter(key => key.startsWith(`${sec.id}_${filterMonth}-`))
                         .map(key => key.substring(`${sec.id}_`.length))
                         .filter((date, index, dates) => dates.indexOf(date) === index)
@@ -1179,6 +1624,7 @@
                         .map(date => ({
                             date,
                             tasks: db.plans[`${sec.id}_${date}`] || [],
+                            preparation: db.preparations[`${sec.id}_${date}`] || null,
                             evaluation: db.engineerEvals[`${sec.id}_${date}`] || null
                         }))
                     : [{ date: filterDate, tasks: dayTasks, evaluation: dayEval }];
@@ -1189,7 +1635,7 @@
                 let actualManpower = tasks.reduce((sum, t) => sum + (parseInt(t.actualManpower) || 0), 0);
                 let completedTasks = tasks.filter(t => t.status === 'Completed').length;
                 const evalBadge = viewMode === 'day'
-                    ? (dayEval ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">Дүгнэлт хийгдсэн (${escapeHtml(dayEval.qualityGrade || 'үнэлгээгүй')})</span>` : '')
+                    ? (dayEval ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">Инженерийн сэтгэгдэл үлдээсэн</span>` : '')
                     : (evaluations.length ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">${evaluations.length} өдрийн дүгнэлт</span>` : '');
                 const managerNoteBadge = managerNote
                     ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold ${managerNote.acknowledged || managerNote.status === 'Approved' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-600'}">Удирдлага ${managerNote.acknowledged || managerNote.status === 'Approved' ? 'танилцсан' : 'тэмдэглэл үлдээсэн'}</span>`
@@ -1202,16 +1648,16 @@
                     </div>
                 ` : '';
                 const detailContent = viewMode === 'day'
-                    ? `${managerNoteCard}${dayTasks.length ? renderEngineerTaskCards(dayTasks) : `
+                    ? `${managerNoteCard}<section class="space-y-3"><h4 class="font-bold text-sm text-slate-800">Тухайн өдрийн ажлын гүйцэтгэл · ${escapeHtml(filterDate)}</h4>${dayTasks.length ? renderEngineerTaskCards(dayTasks) : `
                         <div class="p-4 text-center text-sm text-slate-400 bg-white rounded-lg border border-slate-200">
                             ${escapeHtml(filterDate)} өдөр төлөвлөгөө оруулаагүй байна.
                         </div>
-                    `}`
+                    `}</section>${renderEngineerPreparationCard(dayPreparation, dayTasks, filterDate)}`
                     : `${managerNoteCard}${days.length ? days.map(day => {
                         const dayCompleted = day.tasks.filter(task => task.status === 'Completed').length;
                         const dayManpower = day.tasks.reduce((sum, task) => sum + (parseInt(task.manpower) || 0), 0);
                         const evaluationBadge = day.evaluation
-                            ? `<span class="text-xs px-2 py-1 rounded-full font-semibold bg-indigo-100 text-indigo-800">Инженерийн дүгнэлт: ${escapeHtml(day.evaluation.qualityGrade || 'үнэлгээгүй')}</span>`
+                            ? '<span class="text-xs px-2 py-1 rounded-full font-semibold bg-indigo-100 text-indigo-800">Инженерийн сэтгэгдэл үлдээсэн</span>'
                             : '<span class="text-xs text-slate-400">Дүгнэлт өгөөгүй</span>';
                         return `
                             <section class="space-y-3">
@@ -1223,6 +1669,7 @@
                                     </div>
                                 </div>
                                 ${day.tasks.length ? renderEngineerTaskCards(day.tasks) : '<div class="p-3 text-xs text-slate-400 bg-white rounded-lg border border-slate-200">Энэ өдөр ажил төлөвлөөгүй.</div>'}
+                                ${renderEngineerPreparationCard(day.preparation, day.tasks, day.date)}
                             </section>
                         `;
                     }).join('') : `
@@ -1297,17 +1744,7 @@
             const evalKey = `${sectionId}_${dateStr}`;
             const evalData = db.engineerEvals[evalKey];
 
-            if (evalData) {
-                document.getElementById('engSelectPlan').value = evalData.planStatus || 'Хангалттай';
-                document.getElementById('engSelectManpower').value = evalData.manpowerStatus || 'Хангалттай';
-                document.getElementById('engSelectTech').value = evalData.techStatus || 'Бүрэн баримталсан';
-                document.getElementById('engSelectWeather').value = evalData.weatherStatus || 'Хэвийн';
-                document.getElementById('engSelectEquip').value = evalData.equipStatus || 'Хангалттай';
-                document.getElementById('engSelectQuality').value = evalData.qualityGrade || 'А';
-                document.getElementById('engComment').value = evalData.comment || '';
-            } else {
-                document.getElementById('engComment').value = '';
-            }
+            document.getElementById('engComment').value = evalData?.comment || '';
 
             document.getElementById('engineerModal').classList.remove('hidden');
         }
@@ -1316,28 +1753,33 @@
             document.getElementById('engineerModal').classList.add('hidden');
         }
 
-        function saveEngineerEvaluation(e) {
+        async function saveEngineerEvaluation(e) {
             e.preventDefault();
             const sectionId = document.getElementById('engEvalSectionId').value;
             const dateStr = document.getElementById('engEvalDate').value;
             const evalKey = `${sectionId}_${dateStr}`;
+            const previousEvaluation = db.engineerEvals[evalKey];
 
             db.engineerEvals[evalKey] = {
                 engineerId: currentUser.id,
                 engineerName: currentUser.name,
                 date: dateStr,
-                planStatus: document.getElementById('engSelectPlan').value,
-                manpowerStatus: document.getElementById('engSelectManpower').value,
-                techStatus: document.getElementById('engSelectTech').value,
-                weatherStatus: document.getElementById('engSelectWeather').value,
-                equipStatus: document.getElementById('engSelectEquip').value,
-                qualityGrade: document.getElementById('engSelectQuality').value,
                 comment: document.getElementById('engComment').value
             };
 
-            saveDatabase();
-            closeEngineerModal();
-            loadEngineerData();
+            try {
+                await saveDatabase();
+                closeEngineerModal();
+                loadEngineerData();
+            } catch (error) {
+                console.error('Failed to save engineer evaluation', error);
+                if (previousEvaluation) {
+                    db.engineerEvals[evalKey] = previousEvaluation;
+                } else {
+                    delete db.engineerEvals[evalKey];
+                }
+                alert(getDatabaseSaveErrorMessage(error));
+            }
         }
 
 
@@ -1356,8 +1798,6 @@
             let approvedSectionsCount = 0;
 
             let sectionPerfData = [];
-            let sectionGradeData = [];
-
             SECTIONS.forEach(sec => {
                 let secTasks = 0;
                 let secCompleted = 0;
@@ -1385,16 +1825,6 @@
                     approvedSectionsCount++;
                 }
 
-                const sectionGrades = { 'А': 0, 'Б': 0, 'В': 0, 'Г': 0 };
-                Object.keys(db.engineerEvals).forEach(key => {
-                    if (key.startsWith(`${sec.id}_${monthStr}-`)) {
-                        const grade = db.engineerEvals[key].qualityGrade;
-                        if (sectionGrades[grade] !== undefined) {
-                            sectionGrades[grade]++;
-                        }
-                    }
-                });
-                sectionGradeData.push({ sectionName: sec.name, grades: sectionGrades });
             });
 
             document.getElementById('mgrTotalTasks').textContent = totalTasks;
@@ -1403,7 +1833,6 @@
             document.getElementById('mgrApprovedSections').textContent = `${approvedSectionsCount} / 25`;
 
             renderManagerCharts(sectionPerfData);
-            renderManagerEvaluationTable(sectionGradeData, monthStr);
             renderManagerApprovalTable(monthStr);
             lucide.createIcons();
         }
@@ -1425,49 +1854,6 @@
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100, min: 0 } } }
             });
 
-        }
-
-        function renderManagerEvaluationTable(sectionGradeData, monthStr) {
-            const tbody = document.getElementById('mgrEvaluationTableBody');
-            const tfoot = document.getElementById('mgrEvaluationTableFoot');
-            const totals = { 'А': 0, 'Б': 0, 'В': 0, 'Г': 0 };
-
-            document.getElementById('mgrEvaluationMonthLabel').textContent =
-                `${monthStr} сарын үнэлгээ · Хэсэг тус бүрийн үнэлгээний тоо`;
-
-            tbody.innerHTML = sectionGradeData.map(section => {
-                const grades = section.grades;
-                const total = Object.values(grades).reduce((sum, count) => sum + count, 0);
-
-                Object.keys(totals).forEach(grade => {
-                    totals[grade] += grades[grade];
-                });
-
-                return `
-                    <tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 text-left font-semibold text-slate-800">${escapeHtml(section.sectionName)}</td>
-                        <td class="px-4 py-3">${escapeHtml(monthStr)}</td>
-                        <td class="px-4 py-3 font-semibold text-emerald-700">${grades['А']}</td>
-                        <td class="px-4 py-3 font-semibold text-blue-700">${grades['Б']}</td>
-                        <td class="px-4 py-3 font-semibold text-amber-700">${grades['В']}</td>
-                        <td class="px-4 py-3 font-semibold text-red-700">${grades['Г']}</td>
-                        <td class="px-4 py-3 font-bold">${total}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            const overallTotal = Object.values(totals).reduce((sum, count) => sum + count, 0);
-            tfoot.innerHTML = `
-                <tr>
-                    <td class="px-4 py-3 text-left">Нийт</td>
-                    <td class="px-4 py-3">${escapeHtml(monthStr)}</td>
-                    <td class="px-4 py-3 text-emerald-700">${totals['А']}</td>
-                    <td class="px-4 py-3 text-blue-700">${totals['Б']}</td>
-                    <td class="px-4 py-3 text-amber-700">${totals['В']}</td>
-                    <td class="px-4 py-3 text-red-700">${totals['Г']}</td>
-                    <td class="px-4 py-3">${overallTotal}</td>
-                </tr>
-            `;
         }
 
         function renderManagerApprovalTable(monthStr) {
@@ -1510,21 +1896,13 @@
                                     <div class="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
                                         <div class="flex flex-wrap items-center justify-between gap-2">
                                             <span class="font-semibold text-slate-700">${escapeHtml(evaluation.date)}</span>
-                                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-800">Үнэлгээ: ${escapeHtml(evaluation.qualityGrade || 'Оруулаагүй')}</span>
+                                            <span class="text-slate-600">Инженер: <b>${escapeHtml(evaluation.engineerName || 'Тодорхойгүй')}</b></span>
                                         </div>
-                                        <div class="grid grid-cols-1 gap-1 text-slate-600 sm:grid-cols-2">
-                                            <div>Төлөвлөгөө: <b>${escapeHtml(evaluation.planStatus || 'Оруулаагүй')}</b></div>
-                                            <div>Хүн хүч: <b>${escapeHtml(evaluation.manpowerStatus || 'Оруулаагүй')}</b></div>
-                                            <div>Технологийн горим: <b>${escapeHtml(evaluation.techStatus || 'Оруулаагүй')}</b></div>
-                                            <div>Цаг агаар: <b>${escapeHtml(evaluation.weatherStatus || 'Оруулаагүй')}</b></div>
-                                            <div>Тоног төхөөрөмж: <b>${escapeHtml(evaluation.equipStatus || 'Оруулаагүй')}</b></div>
-                                        </div>
-                                        <div class="text-slate-600">Инженер: <b>${escapeHtml(evaluation.engineerName || 'Тодорхойгүй')}</b></div>
-                                        <div class="whitespace-pre-wrap text-slate-600">Сэтгэгдэл: ${escapeHtml(evaluation.comment || 'Сэтгэгдэлгүй')}</div>
+                                        <div class="whitespace-pre-wrap text-slate-600">Сэтгэгдэл: ${escapeHtml(evaluation.comment || 'Сэтгэгдэл үлдээгээгүй')}</div>
                                     </div>
                                 `).join('')}
                             </div>
-                        ` : `<span class="text-slate-400">Инженерийн дүгнэлт оруулаагүй</span>`}
+                        ` : `<span class="text-slate-400">Инженерийн сэтгэгдэл оруулаагүй</span>`}
                     </td>
                     <td class="px-6 py-4 text-xs">
                         ${managerNote ? `
@@ -1565,11 +1943,12 @@
             document.getElementById('managerModal').classList.add('hidden');
         }
 
-        function saveManagerApproval(e) {
+        async function saveManagerApproval(e) {
             e.preventDefault();
             const sectionId = document.getElementById('mgrApprovalSectionId').value;
             const monthStr = document.getElementById('managerFilterMonth').value || simulatedDate.substring(0, 7);
             const approvalKey = `${sectionId}_${monthStr}`;
+            const previousApproval = db.managerApprovals[approvalKey];
 
             db.managerApprovals[approvalKey] = {
                 managerId: currentUser.id,
@@ -1579,9 +1958,19 @@
                 date: new Date().toISOString().split('T')[0]
             };
 
-            saveDatabase();
-            closeManagerModal();
-            loadManagerDashboard();
+            try {
+                await saveDatabase();
+                closeManagerModal();
+                loadManagerDashboard();
+            } catch (error) {
+                console.error('Failed to save manager approval', error);
+                if (previousApproval) {
+                    db.managerApprovals[approvalKey] = previousApproval;
+                } else {
+                    delete db.managerApprovals[approvalKey];
+                }
+                alert(getDatabaseSaveErrorMessage(error));
+            }
         }
     </script>
 </body>
