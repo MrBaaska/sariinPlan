@@ -111,7 +111,7 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">Нууц код</label>
                     <input type="password" id="loginCode" required placeholder="Нэвтрэх нууц код оруулах" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-3 focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                    <p class="text-[11px] text-slate-400 mt-1">Туршилтын нууц код: <span class="font-mono text-slate-600 font-semibold">1234</span></p>
+                    <p class="text-[11px] text-slate-400 mt-1">Нэвтрэх кодоо оруулна уу.</p>
                 </div>
 
                 <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-sky-600/30 transition flex items-center justify-center space-x-2">
@@ -467,7 +467,7 @@
     <!-- JAVASCRIPT APPLICATION LOGIC -->
     <script>
         // ==========================================
-        // SYSTEM STATE & LOCAL STORAGE INITIALIZATION
+        // SYSTEM STATE & SUPABASE INITIALIZATION
         // ==========================================
         
         // System Master Data Setup
@@ -512,18 +512,26 @@
         // Active Session User
         let currentUser = null;
 
-        // Reactive Application Database (Loaded from LocalStorage)
+        // Add the Supabase project URL and anon/publishable key below.
+        const SUPABASE_URL = 'https://uqdoylixskydwzzngxea.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_WUgTsE7gtUHpJruYoeAtmA_kL8-SKNT';
+        const SUPABASE_STATE_TABLE = 'railway_app_state';
+        const databaseStorageKey = 'railway_master_db';
+
+        // Reactive application database, loaded from Supabase.
         let db = {
             plans: {},      // key: `${sectionId}_${date}` => array of tasks
             preparations: {}, // key: `${sectionId}_${date}` => next-day preparation report
             engineerEvals: {}, // key: `${sectionId}_${date}` => evaluation object
             managerApprovals: {} // key: `${sectionId}_${monthStr}` => approval object
         };
+        let databaseReady = false;
 
         // Initialize Icons
         document.addEventListener("DOMContentLoaded", async () => {
             try {
                 await loadDatabase();
+                databaseReady = true;
             } catch (error) {
                 console.error("Failed to load or initialize the database", error);
                 alert(getDatabaseSaveErrorMessage(error));
@@ -533,7 +541,44 @@
             lucide.createIcons();
         });
 
-        const databaseStorageKey = 'railway_master_db';
+        function validateSupabaseConfiguration() {
+            if (
+                !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(SUPABASE_URL) ||
+                !SUPABASE_ANON_KEY ||
+                SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY'
+            ) {
+                throw new Error('index.html доторх SUPABASE_URL болон SUPABASE_ANON_KEY утгыг Supabase төслийн мэдээллээр солино уу.');
+            }
+        }
+
+        async function supabaseRequest(path, options = {}) {
+            validateSupabaseConfiguration();
+            const response = await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/${path}`, {
+                ...options,
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    ...(SUPABASE_ANON_KEY.startsWith('sb_publishable_')
+                        ? {}
+                        : { Authorization: `Bearer ${SUPABASE_ANON_KEY}` }),
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            const responseText = await response.text();
+            let responseBody = null;
+            if (responseText) {
+                try {
+                    responseBody = JSON.parse(responseText);
+                } catch {
+                    responseBody = responseText;
+                }
+            }
+            if (!response.ok) {
+                const detail = responseBody?.message || responseBody?.hint || responseText || response.statusText;
+                throw new Error(`Supabase (${response.status}): ${detail}`);
+            }
+            return responseBody;
+        }
 
         function openDatabaseStorage() {
             return new Promise((resolve, reject) => {
@@ -572,71 +617,79 @@
             });
         }
 
-        async function writeDatabaseToIndexedDB(serialized) {
-            const storage = await openDatabaseStorage();
-            return new Promise((resolve, reject) => {
-                const transaction = storage.transaction('appData', 'readwrite');
-                transaction.objectStore('appData').put(serialized, databaseStorageKey);
-                transaction.oncomplete = () => {
-                    storage.close();
-                    resolve();
-                };
-                transaction.onerror = () => {
-                    storage.close();
-                    reject(transaction.error || new Error('Could not write the saved database.'));
-                };
-                transaction.onabort = () => {
-                    storage.close();
-                    reject(transaction.error || new Error('Could not write the saved database.'));
-                };
-            });
+        function applyDatabaseState(state) {
+            if (!state || typeof state !== 'object' || Array.isArray(state)) {
+                throw new Error('Supabase-д хадгалсан өгөгдлийн бүтэц буруу байна.');
+            }
+            for (const key of ['plans', 'preparations', 'engineerEvals', 'managerApprovals']) {
+                if (state[key] !== undefined && (!state[key] || typeof state[key] !== 'object' || Array.isArray(state[key]))) {
+                    throw new Error(`Өгөгдлийн ${key} хэсгийн бүтэц буруу байна.`);
+                }
+            }
+            db = {
+                plans: state.plans || {},
+                preparations: state.preparations || {},
+                engineerEvals: state.engineerEvals || {},
+                managerApprovals: state.managerApprovals || {}
+            };
         }
 
-        async function loadDatabase() {
+        async function readLegacyLocalDatabase() {
             let saved = null;
             try {
                 saved = await readDatabaseFromIndexedDB();
-            } catch (error) {
-                console.warn('IndexedDB read failed; trying the previous localStorage database.', error);
+            } catch (indexedDbError) {
+                console.warn('Could not read the previous IndexedDB database.', indexedDbError);
             }
             if (!saved) {
                 try {
                     saved = localStorage.getItem(databaseStorageKey);
-                } catch (error) {
-                    console.error('Could not read the localStorage database.', error);
+                } catch (localStorageError) {
+                    console.warn('Could not read the previous localStorage database.', localStorageError);
                 }
             }
-            if (saved) {
-                try {
-                    db = { ...db, ...JSON.parse(saved) };
-                    db.preparations = db.preparations || {};
-                } catch (e) {
-                    console.error("Failed to parse the saved database", e);
-                }
-            } else {
-                await seedInitialDemoData();
+            if (!saved) return false;
+
+            let legacyState;
+            try {
+                legacyState = typeof saved === 'string' ? JSON.parse(saved) : saved;
+            } catch (error) {
+                throw new Error(`Өмнөх хөтчийн мэдээллийг уншиж чадсангүй: ${error.message}`);
             }
+            applyDatabaseState(legacyState);
+            return true;
+        }
+
+        async function loadDatabase() {
+            validateSupabaseConfiguration();
+            const rows = await supabaseRequest(
+                `${SUPABASE_STATE_TABLE}?id=eq.1&select=state`
+            );
+            if (!Array.isArray(rows)) {
+                throw new Error('Supabase хүснэгтийн хариу буруу форматтай байна.');
+            }
+            if (rows.length > 0) {
+                applyDatabaseState(rows[0].state);
+                return;
+            }
+
+            if (await readLegacyLocalDatabase()) {
+                await saveDatabase();
+                return;
+            }
+            await seedInitialDemoData();
         }
 
         async function saveDatabase() {
-            const serialized = JSON.stringify(db);
-            try {
-                await writeDatabaseToIndexedDB(serialized);
-            } catch (indexedDbError) {
-                try {
-                    localStorage.setItem(databaseStorageKey, serialized);
-                } catch (localStorageError) {
-                    const storageErrors = [indexedDbError, localStorageError];
-                    const primaryError = storageErrors.find(error =>
-                        error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
-                    ) || storageErrors.find(error => error.name === 'SecurityError') || localStorageError;
-                    const storageError = new Error(
-                        `IndexedDB save failed: ${indexedDbError.message || indexedDbError}; localStorage save failed: ${localStorageError.message || localStorageError}`
-                    );
-                    storageError.name = primaryError.name || 'StorageError';
-                    throw storageError;
-                }
-            }
+            await supabaseRequest(`${SUPABASE_STATE_TABLE}?on_conflict=id`, {
+                method: 'POST',
+                headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+                body: JSON.stringify({
+                    id: 1,
+                    state: db,
+                    updated_at: new Date().toISOString()
+                })
+            });
         }
 
         async function seedInitialDemoData() {
@@ -716,13 +769,21 @@
 
         function handleLogin(e) {
             e.preventDefault();
+            if (!databaseReady) {
+                alert('Supabase холболт бэлэн биш байна. Тохиргоо болон SQL-г шалгаад хуудсыг дахин ачаална уу.');
+                return;
+            }
             const role = document.getElementById('loginRole').value;
             const userId = parseInt(document.getElementById('loginUserSelect').value);
             const code = document.getElementById('loginCode').value;
+            const loginCodes = {
+                section: '1234',
+                engineer: '86114524',
+                manager: '86114520'
+            };
 
-            // Simplified code check (1234)
-            if (code !== '1234' && code !== '') {
-                alert('Нууц код буруу байна! (Туршилтын код: 1234)');
+            if (code !== loginCodes[role]) {
+                alert('Нууц код буруу байна!');
                 return;
             }
 
@@ -1099,7 +1160,7 @@
                                 <label class="block text-[10px] text-slate-500 mb-1">Гүйцэтгэлийн төлөв (Select)</label>
                                 <select data-field="status" data-index="${index}" ${executionLocked ? 'disabled' : ''} class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs font-semibold focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100">
                                     <option value="Uncompleted" ${task.status === 'Uncompleted' ? 'selected' : ''}>Хийгдээгүй (0%)</option>
-                                    <option value="Partial" ${task.status === 'Partial' ? 'selected' : ''}>Хэсэгчлэн биелсэн (50-90%)</option>
+                                    <option value="Partial" ${task.status === 'Partial' ? 'selected' : ''}>Хэсэгчлэн биелсэн (50-70%)</option>
                                     <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Биелсэн (100%)</option>
                                 </select>
                             </div>
@@ -1314,16 +1375,8 @@
         }
 
         function getDatabaseSaveErrorMessage(error) {
-            if (error?.name === 'QuotaExceededError' || error?.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-                return 'Хөтчийн хадгалах зай дүүрсэн тул хадгалж чадсангүй. Хуучин мэдээллээ нөөцөлж аваад зай чөлөөлөх эсвэл өөр хөтчөөр нээнэ үү.';
-            }
-            if (error?.name === 'SecurityError') {
-                return 'Хөтөч хадгалах зөвшөөрөл өгөөгүй байна. Chrome/Edge дээр localhost хаягаар нээж, site data-г зөвшөөрөөд дахин оролдоно уу.';
-            }
-            if (error instanceof TypeError) {
-                return 'Өгөгдлийг хадгалах форматад хувиргаж чадсангүй. Консолын алдааг шалгах эсвэл дахин ачаалаад оролдоно уу.';
-            }
-            return `Хөтчийн хадгалалт амжилтгүй боллоо: ${error?.message || 'хадгалалтын алдаа'}. Оруулсан мэдээллийг хадгалаагүй; хуудсыг хаахаас өмнө алдааг шийднэ үү.`;
+            const detail = error?.message || 'тодорхойгүй холболтын алдаа';
+            return `Supabase-д холбогдож/хадгалж чадсангүй: ${detail}. Project URL, anon key, хүснэгт болон RLS бодлогыг шалгана уу.`;
         }
 
         async function saveModalExecution() {
