@@ -525,6 +525,13 @@
             engineerEvals: {}, // key: `${sectionId}_${date}` => evaluation object
             managerApprovals: {} // key: `${sectionId}_${monthStr}` => approval object
         };
+        let lastSyncedDatabaseState = {
+            plans: {},
+            preparations: {},
+            engineerEvals: {},
+            managerApprovals: {}
+        };
+        let databaseSaveQueue = Promise.resolve();
         let databaseReady = false;
 
         // Initialize Icons
@@ -670,6 +677,7 @@
             }
             if (rows.length > 0) {
                 applyDatabaseState(rows[0].state);
+                lastSyncedDatabaseState = JSON.parse(JSON.stringify(db));
                 return;
             }
 
@@ -680,16 +688,40 @@
             await seedInitialDemoData();
         }
 
+        function getChangedDatabaseState() {
+            const changedState = {};
+            for (const section of ['plans', 'preparations', 'engineerEvals', 'managerApprovals']) {
+                const changedEntries = {};
+                for (const [key, value] of Object.entries(db[section])) {
+                    if (JSON.stringify(value) !== JSON.stringify(lastSyncedDatabaseState[section][key])) {
+                        changedEntries[key] = value;
+                    }
+                }
+                if (Object.keys(changedEntries).length > 0) {
+                    changedState[section] = changedEntries;
+                }
+            }
+            return changedState;
+        }
+
         async function saveDatabase() {
-            await supabaseRequest(`${SUPABASE_STATE_TABLE}?on_conflict=id`, {
-                method: 'POST',
-                headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-                body: JSON.stringify({
-                    id: 1,
-                    state: db,
-                    updated_at: new Date().toISOString()
-                })
+            const saveOperation = databaseSaveQueue.then(async () => {
+                const changedState = getChangedDatabaseState();
+                if (Object.keys(changedState).length === 0) return;
+
+                await supabaseRequest('rpc/merge_railway_app_state', {
+                    method: 'POST',
+                    body: JSON.stringify({ incoming_state: changedState })
+                });
+
+                for (const [section, entries] of Object.entries(changedState)) {
+                    for (const [key, value] of Object.entries(entries)) {
+                        lastSyncedDatabaseState[section][key] = JSON.parse(JSON.stringify(value));
+                    }
+                }
             });
+            databaseSaveQueue = saveOperation.catch(() => {});
+            return saveOperation;
         }
 
         async function seedInitialDemoData() {
