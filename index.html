@@ -359,6 +359,10 @@
                     <div class="flex items-center justify-between">
                         <h4 class="font-bold text-slate-800 text-sm">Тухайн өдрийн бригадын ажлууд</h4>
                         <div class="flex items-center gap-2">
+                            <button id="unlockPlanBtn" onclick="unlockPlanEditing()" class="text-xs font-semibold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                                <i data-lucide="lock-keyhole" class="w-4 h-4"></i>
+                                <span>Кодоор засварлах</span>
+                            </button>
                             <button id="addNewTaskBtn" onclick="addNewTaskRow()" class="text-xs font-semibold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
                                 <i data-lucide="plus" class="w-4 h-4"></i>
                                 <span>Ажил нэмэх</span>
@@ -495,7 +499,7 @@
             { id: 7, name: 'ПЧИу-2 - Алтантүлхүүр' },
             { id: 8, name: 'ПЧИу-3 - Г.Банзрагч' },
             { id: 9, name: 'ПЧИу-4 - Ууганбаяр' },
-            { id: 10, name: 'ПЧД - Мягмарсүрэн' }
+            { id: 10, name: 'Диспетчер' }
         ];
         const MANAGERS = [
             { id: 1, name: 'Замын 2-р ангийн дарга Д.Алтангэрэл' },
@@ -504,6 +508,265 @@
             { id: 4, name: 'Замын ангийн ерөнхий инженер Б.Ганбаяр' },
             { id: 5, name: 'Бусад' }
         ];
+        const TETRA_STATION_GROUPS = [
+            {
+                section: 'ПД-1',
+                location: 'Шатнага',
+                stations: [
+                    { affiliation: 'ПД', number: '4753000' },
+                    { affiliation: 'ПДБк', number: '4753004' },
+                    { affiliation: 'ПДБ1', number: '4753001' },
+                    { affiliation: 'ПДБ2', number: '4753002' },
+                    { affiliation: 'ПДБ3', number: '4753003' },
+                    { affiliation: 'Т/з', number: '4753010' },
+                    { affiliation: 'Т/з', number: '4784453' },
+                    { affiliation: 'Т/з', number: '4753011' },
+                    { affiliation: 'Жижүүр', number: '4754001' },
+                    { affiliation: 'Дохиочин', number: '4753801' }
+                ]
+            },
+            {
+                section: 'ПД-2',
+                location: 'Мандал',
+                stations: [
+                    { affiliation: 'ПЧИу1', number: '4753012' },
+                    { affiliation: 'ПД', number: '4753200' },
+                    { affiliation: 'ПДБ1', number: '4753201' },
+                    { affiliation: 'ПДБ2', number: '4753202' },
+                    { affiliation: 'ПДБ3', number: '4753203' },
+                    { affiliation: 'ПДБк', number: '4753204' },
+                    { affiliation: 'Т/з', number: '4753210' },
+                    { affiliation: 'Т/з', number: '4753211' },
+                    { affiliation: 'Т/з', number: '4753212' },
+                    { affiliation: 'Дохиочин', number: '4753205' }
+                ]
+            },
+            {
+                section: 'ПД-3',
+                location: 'Ногоон толгой',
+                stations: [
+                    { affiliation: 'ПД', number: '4753300' },
+                    { affiliation: 'ПДБк', number: '4753302' },
+                    { affiliation: 'ПДБ1', number: '4753301' },
+                    { affiliation: 'ПДБ2', number: '4753310' },
+                    { affiliation: 'Т/з', number: '4753311' },
+                    { affiliation: 'Т/з', number: '4753312' },
+                    { affiliation: 'Дохиочин', number: '4753303' }
+                ]
+            },
+            {
+                section: 'ПД-4',
+                location: 'Рашаант',
+                stations: [
+                    { affiliation: 'ПД', number: '4753400' },
+                    { affiliation: 'ПДБк', number: '4753404' },
+                    { affiliation: 'ПДБ1', number: '4753401' },
+                    { affiliation: 'ПДБ2', number: '4753402' },
+                    { affiliation: 'ПДБ3', number: '4753403' },
+                    { affiliation: 'Г/ж', number: '4753410' },
+                    { affiliation: 'Т/з', number: '4753411' },
+                    { affiliation: 'Т/з', number: '4753412' },
+                    { affiliation: 'Жижүүр', number: '4754002' },
+                    { affiliation: 'Дохиочин', number: '4753405' }
+                ]
+            },
+            {
+                section: 'ПД-5',
+                location: 'Эмээлт',
+                stations: [
+                    { affiliation: 'ПД', number: '4753600' },
+                    { affiliation: 'ПДБк', number: '4753604' },
+                    { affiliation: 'ПДБ1', number: '4753601' },
+                    { affiliation: 'ПДБ2', number: '4753602' },
+                    { affiliation: 'ПДБ3', number: '4753603' },
+                    { affiliation: 'Т/з', number: '4753610' },
+                    { affiliation: 'Т/з', number: '4753705' },
+                    { affiliation: 'Жижүүр', number: '4754003' },
+                    { affiliation: 'Жижүүр', number: '4753406' }
+                ]
+            },
+            {
+                section: 'ПД-6',
+                location: 'Толгойт',
+                stations: [
+                    { affiliation: 'ПЧИу2', number: '4753700' },
+                    { affiliation: 'ПД', number: '4753701' },
+                    { affiliation: 'ПДБк', number: '4753706' },
+                    { affiliation: 'ПДБ1', number: '4753702' },
+                    { affiliation: 'ПДБ2', number: '4753703' },
+                    { affiliation: 'ПДБ3', number: '4753704' },
+                    { affiliation: 'Т/з', number: '4753710' },
+                    { affiliation: '396 гарам', number: '4753711' },
+                    { affiliation: 'ПДБ-1', number: '4754004' },
+                    { affiliation: 'Дохиочин', number: '4753707' }
+                ]
+            },
+            {
+                section: 'ПД-7',
+                location: 'УБ-1',
+                stations: [
+                    { affiliation: 'ПД', number: '4754535' },
+                    { affiliation: 'ПДБк', number: '4753907' },
+                    { affiliation: 'ПДБ1', number: '4753901' },
+                    { affiliation: 'ПДБ2', number: '4753902' },
+                    { affiliation: 'ПДБ3', number: '4753903' },
+                    { affiliation: 'ПДБ4', number: '4753904' },
+                    { affiliation: 'Г/ж 407', number: '4753910' },
+                    { affiliation: 'Т/з', number: '4753908' },
+                    { affiliation: 'ПД', number: '4754006' },
+                    { affiliation: 'ПДБ-1', number: '4754007' },
+                    { affiliation: 'ПДБ-1', number: '4753911' }
+                ]
+            },
+            {
+                section: 'ПД-8',
+                location: 'Амгалан',
+                stations: [
+                    { affiliation: 'ПЧИу3', number: '4753800' },
+                    { affiliation: 'ПД', number: '4755000' },
+                    { affiliation: 'ПДБ1', number: '4755002' },
+                    { affiliation: 'ПДБ2', number: '4755001' },
+                    { affiliation: 'ПДБ3', number: '4755012' },
+                    { affiliation: 'Гарам', number: '4754010' },
+                    { affiliation: 'ПДБк', number: '4755010' },
+                    { affiliation: 'Т/з', number: '4755011' },
+                    { affiliation: 'ПДБ4', number: '4755003' },
+                    { affiliation: 'Том холбоx', number: '4755004' },
+                    { affiliation: 'Т/з', number: '4755005' }
+                ]
+            },
+            {
+                section: 'ПД-9',
+                location: 'Хонхор',
+                stations: [
+                    { affiliation: 'ПД', number: '4755200' },
+                    { affiliation: 'ПДБ1', number: '4755201' },
+                    { affiliation: 'ПДБ2', number: '4755202' },
+                    { affiliation: 'ПДБ3', number: '4755203' },
+                    { affiliation: 'ПДБк', number: '4755204' },
+                    { affiliation: 'Т/з', number: '4755210' },
+                    { affiliation: 'Т/з', number: '4755211' },
+                    { affiliation: 'ПД', number: '4754009' },
+                    { affiliation: 'Дохиочин', number: '4755205' }
+                ]
+            },
+            {
+                section: 'ПД-10',
+                location: 'Баян',
+                stations: [
+                    { affiliation: 'ПД', number: '4755400' },
+                    { affiliation: 'ПДБ1', number: '4755401' },
+                    { affiliation: 'ПДБ2', number: '4755402' },
+                    { affiliation: 'ПДБ3', number: '4755403' },
+                    { affiliation: 'ПДБк', number: '4755404' },
+                    { affiliation: 'Т/з', number: '4755410' },
+                    { affiliation: 'Т/з', number: '4755411' },
+                    { affiliation: '452 гарам', number: '4755412' },
+                    { affiliation: 'Сц', number: '4755405' },
+                    { affiliation: 'Дохиочин', number: '4754010' },
+                    { affiliation: 'Дохиочин', number: '4755205' }
+                ]
+            },
+            {
+                section: 'ПД-11',
+                location: 'Хоолт',
+                stations: [
+                    { affiliation: 'ПД', number: '4755600' },
+                    { affiliation: 'ПДБ1', number: '4755601' },
+                    { affiliation: 'ПДБ2', number: '4755602' },
+                    { affiliation: 'Дохиочин', number: '4755603' },
+                    { affiliation: 'ПДБк', number: '4755604' },
+                    { affiliation: 'Т/з', number: '4755610' },
+                    { affiliation: 'Т/з', number: '4755611' },
+                    { affiliation: 'ПД', number: '4754011' },
+                    { affiliation: 'ПДБк', number: '4754012' },
+                    { affiliation: 'ПДБ-3', number: '4754013' },
+                    { affiliation: 'Дохиочин', number: '4755605' }
+                ]
+            },
+            {
+                section: 'ПД-12',
+                location: 'Хайрхан',
+                stations: [
+                    { affiliation: 'ПД', number: '4755900' },
+                    { affiliation: 'ПДБ1', number: '4755901' },
+                    { affiliation: 'ПДБ2', number: '4755902' },
+                    { affiliation: 'ПДБ3', number: '4755903' },
+                    { affiliation: 'ПДБк', number: '4755904' },
+                    { affiliation: 'Т/з', number: '4755910' },
+                    { affiliation: 'Т/з', number: '4755911' },
+                    { affiliation: 'Чуулут', number: '4754014' },
+                    { affiliation: 'Дохиочин', number: '4755606' }
+                ]
+            },
+            {
+                section: 'ПД-13',
+                location: 'Мааньт',
+                stations: [
+                    { affiliation: 'ПД', number: '4756100' },
+                    { affiliation: 'ПДБ1', number: '4756101' },
+                    { affiliation: 'ПДБ2', number: '4756102' },
+                    { affiliation: 'ПДБк', number: '4756103' },
+                    { affiliation: 'Т/з', number: '4756110' },
+                    { affiliation: 'Т/з', number: '4756111' },
+                    { affiliation: 'Дохиочин', number: '4755905' }
+                ]
+            },
+            {
+                section: 'ПД-14',
+                location: 'Агуйт',
+                stations: [
+                    { affiliation: 'ПД', number: '4756200' },
+                    { affiliation: 'ПДБ1', number: '4756201' },
+                    { affiliation: 'ПДБ2', number: '4756202' },
+                    { affiliation: 'ПДБк', number: '4756203' },
+                    { affiliation: 'Т/з', number: '4756210' },
+                    { affiliation: 'Т/з', number: '4756211' },
+                    { affiliation: 'Дохиочин', number: '4754015' },
+                    { affiliation: 'ПДБ2', number: '4756204' }
+                ]
+            },
+            {
+                section: 'ПД-15',
+                location: 'Салбар',
+                stations: [
+                    { affiliation: 'ПД', number: '4754016' }
+                ]
+            },
+            {
+                section: 'ПД-16',
+                location: 'Дов',
+                stations: [
+                    { affiliation: 'Г/ж', number: '4753802' },
+                    { affiliation: 'ПД', number: '4753804' }
+                ]
+            },
+            {
+                section: 'ПД-17',
+                location: 'Багахангай',
+                stations: [
+                    { affiliation: 'ПЧИу4', number: '4756010' },
+                    { affiliation: 'ПД', number: '4756000' },
+                    { affiliation: 'ПДБ1', number: '4756001' },
+                    { affiliation: 'ПДБ2', number: '4756002' },
+                    { affiliation: 'ПДБк', number: '4756003' },
+                    { affiliation: 'Т/з', number: '4756011' },
+                    { affiliation: 'Дохиочин', number: '4756004' }
+                ]
+            },
+            {
+                section: 'ПД-21',
+                location: 'УБ-2',
+                stations: [
+                    { affiliation: 'ПД', number: '4754548' },
+                    { affiliation: 'ПДБ1', number: '4753905' },
+                    { affiliation: 'ПДБ2', number: '4753906' },
+                    { affiliation: 'ТЭЦ4', number: '4753909' },
+                    { affiliation: 'Дохиочин', number: '4753806' }
+                ]
+            }
+        ];
+        const PROTECTION_MEASURES = ['СЦБ', 'Дохио тэмдэгт', 'Анхаарамж', 'Дохиочин', 'Шаардлагагүй'];
 
         // Simulated Date State (Defaults to current system date)
         const initialLocalDate = new Date();
@@ -511,6 +774,8 @@
 
         // Active Session User
         let currentUser = null;
+        const PLAN_EDIT_CODE = 'pch2';
+        let planEditUnlocked = false;
 
         // Add the Supabase project URL and anon/publishable key below.
         const SUPABASE_URL = 'https://uqdoylixskydwzzngxea.supabase.co';
@@ -764,7 +1029,7 @@
         }
 
         function isPlanLocked(dateStr) {
-            return !dateStr;
+            return !dateStr || !planEditUnlocked;
         }
 
         function getDefaultSectionMonth() {
@@ -772,7 +1037,12 @@
         }
 
         function isPreparationLocked(targetDate) {
-            return !targetDate;
+            if (!targetDate) return true;
+
+            const preparationDate = shiftDate(targetDate, -1);
+            const now = new Date();
+            return simulatedDate !== preparationDate
+                || (now.getHours() === 23 && now.getMinutes() >= 30);
         }
 
 
@@ -895,8 +1165,8 @@
             const monthStr = document.getElementById('sectionMonthPicker').value || simulatedDate.substring(0, 7);
             
             const lockBadge = document.getElementById('planLockBadge');
-            lockBadge.className = 'flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200';
-            lockBadge.innerHTML = '<i data-lucide="lock-open" class="w-4 h-4"></i><span>Түр хугацаанд бүх өдөр нээлттэй</span>';
+            lockBadge.className = 'flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200';
+            lockBadge.innerHTML = '<i data-lucide="lock-keyhole" class="w-4 h-4"></i><span>Төлөвлөгөө түгжээтэй · зөвхөн харах</span>';
 
             renderCalendarGrid(monthStr);
             updateSectionKPIs(monthStr);
@@ -1088,9 +1358,11 @@
         let modalPersistedTaskIds = [];
         let modalPreparationDraft = null;
         let modalPreparationTargetDate = null;
+        let preparationLockTimeout = null;
 
         function openDayModal(dateStr) {
             currentModalDate = dateStr;
+            planEditUnlocked = false;
             const planLocked = isPlanLocked(dateStr);
             const executionLocked = false;
             const planKey = `${currentUser.id}_${dateStr}`;
@@ -1107,9 +1379,10 @@
 
             document.getElementById('modalDateTitle').textContent = `${dateStr}-ний ажлын төлөвлөгөө ба гүйцэтгэл`;
             document.getElementById('modalLockSubtitle').textContent = planLocked || executionLocked
-                ? 'Энэ өдөр мэдээлэл оруулах боломжгүй.'
-                : 'Түр хугацаанд төлөвлөгөө, гүйцэтгэл, маргаашийн бэлтгэлийг оруулж хадгална.';
+                ? 'Төлөвлөгөө зөвхөн харах боломжтой. Засварлахын тулд код оруулна уу.'
+                : 'Төлөвлөгөө засварлах боломжтой.';
 
+            document.getElementById('unlockPlanBtn').style.display = planLocked ? 'inline-flex' : 'none';
             document.getElementById('addNewTaskBtn').style.display = planLocked ? 'none' : 'inline-flex';
             document.getElementById('savePlanBtn').style.display = planLocked ? 'none' : 'inline-flex';
             document.getElementById('saveExecutionBtn').disabled = savedTasks.length === 0;
@@ -1123,6 +1396,24 @@
 
         function closeDayModal() {
             document.getElementById('dayModal').classList.add('hidden');
+            planEditUnlocked = false;
+        }
+
+        function unlockPlanEditing() {
+            const code = prompt('Төлөвлөгөө засварлах нууц кодыг оруулна уу:');
+            if (code === null) return;
+            if (code !== PLAN_EDIT_CODE) {
+                alert('Нууц код буруу байна.');
+                return;
+            }
+
+            planEditUnlocked = true;
+            document.getElementById('modalLockSubtitle').textContent = 'Төлөвлөгөө засварлах боломжтой.';
+            document.getElementById('unlockPlanBtn').style.display = 'none';
+            document.getElementById('addNewTaskBtn').style.display = 'inline-flex';
+            document.getElementById('savePlanBtn').style.display = 'inline-flex';
+            renderModalTaskRows(currentModalDate, false, false);
+            lucide.createIcons();
         }
 
         function shiftDate(dateStr, days) {
@@ -1138,7 +1429,7 @@
             const tasks = modalTaskDrafts;
 
             if (tasks.length === 0 && planLocked) {
-                container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">${executionLocked ? 'Энэ өдөрт ажил төлөвлөөгүй байна.' : 'Төлөвлөгөө оруулаагүй байна. Сарын сүүлийн 7 хоногт дараа сарын ажлыг төлөвлөнө.'}</div>`;
+                container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">${executionLocked ? 'Энэ өдөрт ажил төлөвлөөгүй байна.' : 'Төлөвлөгөө оруулаагүй байна. Засварлахын тулд нууц код оруулна уу.'}</div>`;
                 renderTomorrowPreparation(dateStr);
                 return;
             }
@@ -1234,6 +1525,27 @@
                 { value: 'no', label: 'Үгүй' }
             ];
             const followsPlan = report.followsPlan || (plannedTasks.length ? 'yes' : 'no');
+            const tetraRadio = report.tetraRadio || 'yes';
+            const selectedTetraStationIds = Array.isArray(report.tetraStationIds)
+                ? report.tetraStationIds
+                : report.tetraStationId ? [report.tetraStationId] : [];
+            const selectedProtectionMeasures = Array.isArray(report.protection)
+                ? report.protection.filter(measure => PROTECTION_MEASURES.includes(measure))
+                : [];
+            if (!selectedTetraStationIds.length && report.tetraStationNumber) {
+                for (const group of TETRA_STATION_GROUPS) {
+                    const stationIndex = group.stations.findIndex(station => station.number === report.tetraStationNumber);
+                    if (stationIndex >= 0) {
+                        selectedTetraStationIds.push(`${group.section}_${stationIndex}`);
+                        break;
+                    }
+                }
+            }
+            const preparationLockMessage = simulatedDate !== dateStr
+                ? 'Зөвхөн тухайн өдрийн бэлтгэлийг оруулах боломжтой.'
+                : preparationLocked
+                    ? 'Оруулах хугацаа 23:30-д дууссан. Зөвхөн харах горим.'
+                    : 'Мэдээлэл оруулах хугацаа: тухайн өдрийн 23:30 хүртэл.';
             const plannedTasksHtml = plannedTasks.length
                 ? plannedTasks.map((task, index) => `
                     <div class="rounded-lg border border-amber-100 bg-white p-3 text-xs">
@@ -1249,6 +1561,7 @@
                     <div>
                         <h4 class="font-bold text-amber-950 text-sm">Маргаашийн ажлын бэлтгэл · ${targetDate}</h4>
                         <p class="text-[11px] text-amber-800 mt-1">Төлөвлөгөө, гүйцэтгэлийн мэдээллийг хамт хадгалж инженерт илгээнэ.</p>
+                        <p class="text-[11px] ${preparationLocked ? 'text-red-700' : 'text-amber-800'} mt-1">${preparationLockMessage}</p>
                     </div>
                     ${report.reportedOn ? `<span class="text-[10px] text-amber-800">Илгээсэн: ${escapeHtml(report.reportedOn)}</span>` : ''}
                 </div>
@@ -1268,8 +1581,33 @@
                     </div>
                     ${selectField('manpowerSufficient', 'Хүн хүч хангалттай эсэх', yesNo, report.manpowerSufficient || 'yes')}
                     ${selectField('additionalSignalman', 'Нэмэлт дохиочин ажиллах эсэх', yesNo, report.additionalSignalman || 'no')}
-                    ${selectField('tetraRadio', 'Тетра станц байрлуулах эсэх', yesNo, report.tetraRadio || 'yes')}
-                    ${selectField('protection', 'Хорио, хамгаалалт байрлуулах эсэх', yesNo, report.protection || 'yes')}
+                    ${selectField('tetraRadio', 'Тетра станц байрлуулах эсэх', yesNo, tetraRadio, 'toggleTetraStationFields(this.value)')}
+                    <div id="tetraStationFields" class="${tetraRadio === 'yes' ? '' : 'hidden'}">
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Ажилд гаргасан тетра станцын харьяалал, дугаар (5 хүртэл)</label>
+                        <p class="mb-1 text-[10px] text-slate-500">Олон станц сонгохдоо Ctrl (Mac дээр Command) дарж сонгоно уу.</p>
+                        <select data-preparation="tetraStationIds" data-previous-selection="${escapeHtml(JSON.stringify(selectedTetraStationIds))}" multiple size="7" onchange="updateTetraStationSelection(this)" ${tetraRadio === 'yes' && !preparationLocked ? 'required' : 'disabled'} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                            ${TETRA_STATION_GROUPS.map(group => `
+                                <optgroup label="${group.section} · ${group.location}">
+                                    ${group.stations.map((station, index) => {
+                                        const stationId = `${group.section}_${index}`;
+                                        const selected = selectedTetraStationIds.includes(stationId);
+                                        return `<option value="${stationId}" ${selected ? 'selected' : ''}>${station.affiliation} · ${station.number}</option>`;
+                                    }).join('')}
+                                </optgroup>
+                            `).join('')}
+                        </select>
+                        <p id="tetraStationSelectionStatus" class="mt-1 text-[10px] text-slate-500">Сонгосон: ${selectedTetraStationIds.length}/5</p>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Хорио, хамгаалалтын төрөл</label>
+                        <p class="mb-1 text-[10px] text-slate-500">Олон төрөл сонгохдоо Ctrl (Mac дээр Command) дарна уу.</p>
+                        <select data-preparation="protection" multiple size="5" required ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                            ${PROTECTION_MEASURES.map(measure => `<option value="${measure}" ${selectedProtectionMeasures.includes(measure) ? 'selected' : ''}>${measure}</option>`).join('')}
+                        </select>
+                        ${!Array.isArray(report.protection) && report.protection
+                            ? `<p class="mt-1 text-[10px] text-amber-700">Өмнөх хариулт: ${report.protection === 'yes' ? 'Тийм' : report.protection === 'no' ? 'Үгүй' : escapeHtml(report.protection)}. Шинэ төрлөөс сонгоно уу.</p>`
+                            : ''}
+                    </div>
                     <div id="alternativeWorkFields" class="${followsPlan === 'no' ? '' : 'hidden'} sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Төлөвлөгөөнөөс өөр байршил</label>
@@ -1297,6 +1635,25 @@
                     </button>
                 </div>
             `;
+
+            clearTimeout(preparationLockTimeout);
+            if (!preparationLocked) {
+                const now = new Date();
+                const deadline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 30, 0, 0);
+                preparationLockTimeout = setTimeout(() => {
+                    if (modalPreparationTargetDate !== targetDate) return;
+                    document.querySelectorAll('#tomorrowPreparation [data-preparation]').forEach(input => {
+                        input.disabled = true;
+                    });
+                    const saveButton = document.getElementById('savePreparationBtn');
+                    if (saveButton) saveButton.disabled = true;
+                    const status = document.getElementById('preparationSaveStatus');
+                    if (status) {
+                        status.textContent = 'Оруулах хугацаа дууссан. Зөвхөн харах горим.';
+                        status.className = 'text-xs text-red-700';
+                    }
+                }, deadline.getTime() - now.getTime());
+            }
         }
 
         function toggleAlternativeWorkFields(followsPlan) {
@@ -1304,6 +1661,88 @@
             const locationInput = container.querySelector('[data-preparation="alternativeLocation"]');
             container.classList.toggle('hidden', followsPlan !== 'no');
             locationInput.required = followsPlan === 'no';
+        }
+
+        function toggleTetraStationFields(tetraRadio) {
+            const container = document.getElementById('tetraStationFields');
+            const stationSelect = container.querySelector('[data-preparation="tetraStationIds"]');
+            const stationRequired = tetraRadio === 'yes';
+            container.classList.toggle('hidden', !stationRequired);
+            stationSelect.disabled = !stationRequired || isPreparationLocked(modalPreparationTargetDate);
+            stationSelect.required = stationRequired;
+            if (!stationRequired) {
+                Array.from(stationSelect.options).forEach(option => { option.selected = false; });
+                stationSelect.dataset.previousSelection = '[]';
+                if (modalPreparationDraft) {
+                    modalPreparationDraft.tetraStationId = '';
+                    modalPreparationDraft.tetraStationNumber = '';
+                    modalPreparationDraft.tetraStationIds = [];
+                }
+            }
+        }
+
+        function updateTetraStationSelection(stationSelect) {
+            const selectedIds = Array.from(stationSelect.selectedOptions, option => option.value);
+            if (selectedIds.length > 5) {
+                const previousIds = JSON.parse(stationSelect.dataset.previousSelection || '[]');
+                const newlySelectedId = selectedIds.find(id => !previousIds.includes(id));
+                const optionToRemove = Array.from(stationSelect.options).find(option =>
+                    option.value === (newlySelectedId || selectedIds[5])
+                );
+                if (optionToRemove) optionToRemove.selected = false;
+                alert('Хамгийн ихдээ 5 тетра станц сонгоно уу.');
+            }
+
+            const updatedIds = Array.from(stationSelect.selectedOptions, option => option.value);
+            stationSelect.dataset.previousSelection = JSON.stringify(updatedIds);
+            if (modalPreparationDraft) {
+                modalPreparationDraft.tetraStationIds = updatedIds;
+                modalPreparationDraft.tetraStationId = updatedIds[0] || '';
+                modalPreparationDraft.tetraStationNumber = '';
+            }
+            const status = document.getElementById('tetraStationSelectionStatus');
+            if (status) status.textContent = `Сонгосон: ${updatedIds.length}/5`;
+        }
+
+        function getTetraStationDescription(stationId, legacyStationNumber = '') {
+            const stationIds = Array.isArray(stationId) ? stationId : stationId ? [stationId] : [];
+            if (!stationIds.length && legacyStationNumber) {
+                for (const group of TETRA_STATION_GROUPS) {
+                    const stationIndex = group.stations.findIndex(station => station.number === legacyStationNumber);
+                    if (stationIndex >= 0) {
+                        stationIds.push(`${group.section}_${stationIndex}`);
+                        break;
+                    }
+                }
+            }
+
+            const descriptions = stationIds.map(id => {
+                for (const group of TETRA_STATION_GROUPS) {
+                    const stationIndex = group.stations.findIndex((station, index) =>
+                        `${group.section}_${index}` === id
+                    );
+                    if (stationIndex >= 0) {
+                        const station = group.stations[stationIndex];
+                        return `${group.section} · ${group.location} · ${station.affiliation} · ${station.number}`;
+                    }
+                }
+                return '';
+            }).filter(Boolean);
+            return descriptions.join('; ');
+        }
+
+        function getProtectionMeasures(value) {
+            return Array.isArray(value)
+                ? value.filter(measure => PROTECTION_MEASURES.includes(measure))
+                : [];
+        }
+
+        function formatProtectionMeasures(value) {
+            const measures = getProtectionMeasures(value);
+            if (measures.length) return measures.map(escapeHtml).join(', ');
+            if (value === 'yes') return 'Өмнөх хариулт: Тийм (төрөл тодорхойгүй)';
+            if (value === 'no') return 'Өмнөх хариулт: Үгүй (төрөл тодорхойгүй)';
+            return 'Сонгоогүй';
         }
 
         function syncModalInputsToState() {
@@ -1317,7 +1756,10 @@
 
             document.querySelectorAll('#tomorrowPreparation [data-preparation]').forEach(input => {
                 if (modalPreparationDraft) {
-                    modalPreparationDraft[input.getAttribute('data-preparation')] = input.value;
+                    const field = input.getAttribute('data-preparation');
+                    modalPreparationDraft[field] = input.multiple
+                        ? Array.from(input.selectedOptions, option => option.value)
+                        : input.value;
                 }
             });
         }
@@ -1359,7 +1801,7 @@
                 return;
             }
             if (isPlanLocked(currentModalDate)) {
-                setModalSaveStatus('planSaveStatus', 'Төлөвлөгөөний хугацаа дууссан тул засварлах боломжгүй.', 'text-xs text-red-700');
+                setModalSaveStatus('planSaveStatus', 'Төлөвлөгөө түгжээтэй байна. Засварлахын тулд код оруулна уу.', 'text-xs text-red-700');
                 return;
             }
             syncModalInputsToState();
@@ -1445,8 +1887,23 @@
         }
 
         async function saveTomorrowPreparation() {
-            if (!modalPreparationDraft || isPreparationLocked(modalPreparationTargetDate)) return;
+            if (!modalPreparationDraft || isPreparationLocked(modalPreparationTargetDate)) {
+                setModalSaveStatus('preparationSaveStatus', 'Оруулах хугацаа 23:30-д дууссан. Зөвхөн харах горим.', 'text-xs text-red-700');
+                return;
+            }
             syncModalInputsToState();
+            if (modalPreparationDraft.tetraRadio === 'yes' && !modalPreparationDraft.tetraStationIds?.length) {
+                alert('Тетра станц ажилд гаргах бол харьяалал, дугаараас сонгоно уу.');
+                return;
+            }
+            if (modalPreparationDraft.tetraRadio === 'yes' && modalPreparationDraft.tetraStationIds.length > 5) {
+                alert('Хамгийн ихдээ 5 тетра станц сонгоно уу.');
+                return;
+            }
+            if (!getProtectionMeasures(modalPreparationDraft.protection).length) {
+                alert('Хорио, хамгаалалтын төрлөөс дор хаяж нэгийг сонгоно уу.');
+                return;
+            }
             if (modalPreparationDraft.followsPlan === 'no' && !String(modalPreparationDraft.alternativeLocation || '').trim()) {
                 alert('Төлөвлөгөөний бус ажилд байршлыг заавал оруулна уу.');
                 return;
@@ -1576,8 +2033,8 @@
                         <div><span class="text-slate-500">Замчин / дохиочин:</span> <b>${escapeHtml(preparation.signalman || 'Оруулаагүй')}</b></div>
                         <div><span class="text-slate-500">Хүн хүч хангалттай:</span> <b>${answer(preparation.manpowerSufficient)}</b></div>
                         <div><span class="text-slate-500">Нэмэлт дохиочин:</span> <b>${answer(preparation.additionalSignalman)}${preparation.additionalSignalmanName ? ` · ${escapeHtml(preparation.additionalSignalmanName)}` : ''}</b></div>
-                        <div><span class="text-slate-500">Тетра станц:</span> <b>${answer(preparation.tetraRadio)}</b></div>
-                        <div><span class="text-slate-500">Хорио, хамгаалалт:</span> <b>${answer(preparation.protection)}</b></div>
+                        <div><span class="text-slate-500">Тетра станц:</span> <b>${answer(preparation.tetraRadio)}${preparation.tetraRadio === 'yes' ? ` · ${escapeHtml(getTetraStationDescription(preparation.tetraStationIds || preparation.tetraStationId, preparation.tetraStationNumber) || 'Дугаар сонгоогүй')}` : ''}</b></div>
+                        <div><span class="text-slate-500">Хорио, хамгаалалтын төрөл:</span> <b>${formatProtectionMeasures(preparation.protection)}</b></div>
                         <div><span class="text-slate-500">Өөр байршил:</span> <b>${escapeHtml(preparation.alternativeLocation || 'Байхгүй')}</b></div>
                         <div class="sm:col-span-2"><span class="text-slate-500">Төлөвлөгөөний бус ажил:</span> <b>${escapeHtml(preparation.alternativeTask || 'Байхгүй')}</b></div>
                     </div>
@@ -1623,9 +2080,9 @@
                     ? `${answerBadge(preparation.additionalSignalman)}${preparation.additionalSignalman === 'yes' ? `<br>${escapeHtml(preparation.additionalSignalmanName || 'Нэр оруулаагүй')}` : ''}`
                     : 'Мэдээлэл ирүүлээгүй';
                 const manpower = preparation ? answerBadge(preparation.manpowerSufficient) : 'Мэдээлэл ирүүлээгүй';
-                const protection = preparation ? answerBadge(preparation.protection) : 'Мэдээлэл ирүүлээгүй';
+                const protection = preparation ? formatProtectionMeasures(preparation.protection) : 'Мэдээлэл ирүүлээгүй';
                 const radio = preparation
-                    ? `${answerBadge(preparation.tetraRadio)}${preparation.tetraRadio === 'yes' ? '<br><span class="text-slate-600">Тетра станц</span>' : ''}`
+                    ? `${answerBadge(preparation.tetraRadio)}${preparation.tetraRadio === 'yes' ? `<br><span class="text-slate-600">${escapeHtml(getTetraStationDescription(preparation.tetraStationIds || preparation.tetraStationId, preparation.tetraStationNumber) || 'Дугаар сонгоогүй')}</span>` : ''}`
                     : 'Мэдээлэл ирүүлээгүй';
                 const alternative = preparation?.followsPlan === 'no'
                     ? `${escapeHtml(preparation.alternativeLocation || 'Байршил оруулаагүй')}${preparation.alternativeTask ? `<br>${escapeHtml(preparation.alternativeTask)}` : ''}`
