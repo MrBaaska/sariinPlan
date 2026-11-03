@@ -136,7 +136,7 @@
                         <span id="sectionTitleBadge" class="bg-sky-100 text-sky-800 text-xs font-bold px-2.5 py-1 rounded-full">1-р хэсэг</span>
                         <h2 class="text-xl font-bold text-slate-800">Сарын ажлын төлөвлөгөө / Гүйцэтгэл</h2>
                     </div>
-                    <p class="text-xs text-slate-500 mt-1">Түр хугацаанд бүх өдрийн төлөвлөгөө, гүйцэтгэл, маргаашийн бэлтгэлийг оруулж хадгалах боломжтой.</p>
+                    <p class="text-xs text-slate-500 mt-1">Түр хугацаанд бүх өдрийн төлөвлөгөө, гүйцэтгэл, дараагийн ажлын бэлтгэлийг оруулж хадгалах боломжтой.</p>
                 </div>
 
                 <div class="flex items-center space-x-3">
@@ -390,7 +390,7 @@
                 </div>
 
                 <section id="tomorrowPreparation" class="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-4">
-                    <!-- Populated dynamically with tomorrow's plan and preparation report -->
+                    <!-- Populated dynamically with the next planned workday and preparation report -->
                 </section>
             </div>
 
@@ -1036,10 +1036,10 @@
             return simulatedDate.substring(0, 7);
         }
 
-        function isPreparationLocked(targetDate) {
+        function isPreparationLocked(targetDate, preparationDate) {
             if (!targetDate) return true;
 
-            const preparationDate = shiftDate(targetDate, -1);
+            preparationDate = preparationDate || shiftDate(targetDate, -1);
             const now = new Date();
             return simulatedDate !== preparationDate
                 || (now.getHours() === 23 && now.getMinutes() >= 30);
@@ -1372,7 +1372,7 @@
                 ...task,
                 id: modalPersistedTaskIds[index]
             }));
-            modalPreparationTargetDate = shiftDate(dateStr, 1);
+            modalPreparationTargetDate = getNextPlannedWorkDate(dateStr);
             modalPreparationDraft = {
                 ...(db.preparations[`${currentUser.id}_${modalPreparationTargetDate}`] || {})
             };
@@ -1420,6 +1420,17 @@
             const [year, month, day] = dateStr.split('-').map(Number);
             const date = new Date(year, month - 1, day + days);
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function getNextPlannedWorkDate(dateStr) {
+            const nextDate = shiftDate(dateStr, 1);
+            const planKeyPrefix = `${currentUser.id}_`;
+            const plannedDates = Object.keys(db.plans)
+                .filter(key => key.startsWith(planKeyPrefix))
+                .map(key => key.slice(planKeyPrefix.length))
+                .filter(planDate => planDate > dateStr && db.plans[`${planKeyPrefix}${planDate}`]?.length > 0)
+                .sort();
+            return plannedDates[0] || nextDate;
         }
 
         function renderModalTaskRows(dateStr, planLocked, executionLocked) {
@@ -1505,8 +1516,8 @@
         }
 
         function renderTomorrowPreparation(dateStr) {
-            const targetDate = shiftDate(dateStr, 1);
-            const preparationLocked = isPreparationLocked(targetDate);
+            const targetDate = modalPreparationTargetDate || getNextPlannedWorkDate(dateStr);
+            const preparationLocked = isPreparationLocked(targetDate, dateStr);
             const reportKey = `${currentUser.id}_${targetDate}`;
             const report = modalPreparationDraft || db.preparations[reportKey] || {};
             const plannedTasks = db.plans[reportKey] || [];
@@ -1542,7 +1553,7 @@
                 }
             }
             const preparationLockMessage = simulatedDate !== dateStr
-                ? 'Зөвхөн тухайн өдрийн бэлтгэлийг оруулах боломжтой.'
+                ? 'Зөвхөн нээгдсэн өдрийн бэлтгэлийг оруулах боломжтой.'
                 : preparationLocked
                     ? 'Оруулах хугацаа 23:30-д дууссан. Зөвхөн харах горим.'
                     : 'Мэдээлэл оруулах хугацаа: тухайн өдрийн 23:30 хүртэл.';
@@ -1554,19 +1565,19 @@
                         <div class="mt-1 text-slate-500">Дохиочин: ${escapeHtml(task.signalman || 'Тодорхойгүй')}</div>
                     </div>
                 `).join('')
-                : '<p class="text-xs text-slate-500">Маргаашийн төлөвлөгөөт ажил оруулаагүй байна. Календарь дээр маргаашийн өдрийг нээж ажил нэмнэ үү.</p>';
+                : '<p class="text-xs text-slate-500">Дараагийн өдөр төлөвлөгөөт ажил алга байна. Календарь дээр ажил нэмж болно.</p>';
 
             container.innerHTML = `
                 <div class="flex flex-wrap items-start justify-between gap-2 border-b border-amber-200 pb-3">
                     <div>
-                        <h4 class="font-bold text-amber-950 text-sm">Маргаашийн ажлын бэлтгэл · ${targetDate}</h4>
+                        <h4 class="font-bold text-amber-950 text-sm">Дараагийн ажлын бэлтгэл · ${targetDate}</h4>
                         <p class="text-[11px] text-amber-800 mt-1">Төлөвлөгөө, гүйцэтгэлийн мэдээллийг хамт хадгалж инженерт илгээнэ.</p>
                         <p class="text-[11px] ${preparationLocked ? 'text-red-700' : 'text-amber-800'} mt-1">${preparationLockMessage}</p>
                     </div>
                     ${report.reportedOn ? `<span class="text-[10px] text-amber-800">Илгээсэн: ${escapeHtml(report.reportedOn)}</span>` : ''}
                 </div>
                 <div class="space-y-2">
-                    <div class="text-[11px] font-bold text-slate-700 uppercase">Маргаашийн төлөвлөгөөт ажил</div>
+                    <div class="text-[11px] font-bold text-slate-700 uppercase">${targetDate}-ний төлөвлөгөөт ажил</div>
                     ${plannedTasksHtml}
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1595,8 +1606,9 @@
                                     }).join('')}
                                 </optgroup>
                             `).join('')}
+                            <option value="none" ${selectedTetraStationIds.includes('none') ? 'selected' : ''}>Тетра станц байхгүй</option>
                         </select>
-                        <p id="tetraStationSelectionStatus" class="mt-1 text-[10px] text-slate-500">Сонгосон: ${selectedTetraStationIds.length}/5</p>
+                        <p id="tetraStationSelectionStatus" class="mt-1 text-[10px] text-slate-500">${selectedTetraStationIds.includes('none') ? 'Тетра станц байхгүй' : `Сонгосон: ${selectedTetraStationIds.length}/5`}</p>
                     </div>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-600 mb-1">Хорио, хамгаалалтын төрөл</label>
@@ -1631,7 +1643,7 @@
                     <span id="preparationSaveStatus" class="text-xs text-amber-800"></span>
                     <button id="savePreparationBtn" onclick="saveTomorrowPreparation()" ${preparationLocked ? 'disabled' : ''} class="text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
                         <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                        <span>Маргаашийн бэлтгэл хадгалах</span>
+                        <span>Бэлтгэл хадгалах</span>
                     </button>
                 </div>
             `;
@@ -1668,7 +1680,7 @@
             const stationSelect = container.querySelector('[data-preparation="tetraStationIds"]');
             const stationRequired = tetraRadio === 'yes';
             container.classList.toggle('hidden', !stationRequired);
-            stationSelect.disabled = !stationRequired || isPreparationLocked(modalPreparationTargetDate);
+            stationSelect.disabled = !stationRequired || isPreparationLocked(modalPreparationTargetDate, currentModalDate);
             stationSelect.required = stationRequired;
             if (!stationRequired) {
                 Array.from(stationSelect.options).forEach(option => { option.selected = false; });
@@ -1682,9 +1694,17 @@
         }
 
         function updateTetraStationSelection(stationSelect) {
-            const selectedIds = Array.from(stationSelect.selectedOptions, option => option.value);
+            let selectedIds = Array.from(stationSelect.selectedOptions, option => option.value);
+            const previousIds = JSON.parse(stationSelect.dataset.previousSelection || '[]');
+            if (selectedIds.includes('none') && selectedIds.length > 1) {
+                const newlySelectedId = selectedIds.find(id => !previousIds.includes(id));
+                const keepNone = newlySelectedId === 'none';
+                Array.from(stationSelect.options).forEach(option => {
+                    option.selected = keepNone ? option.value === 'none' : option.value !== 'none' && selectedIds.includes(option.value);
+                });
+                selectedIds = Array.from(stationSelect.selectedOptions, option => option.value);
+            }
             if (selectedIds.length > 5) {
-                const previousIds = JSON.parse(stationSelect.dataset.previousSelection || '[]');
                 const newlySelectedId = selectedIds.find(id => !previousIds.includes(id));
                 const optionToRemove = Array.from(stationSelect.options).find(option =>
                     option.value === (newlySelectedId || selectedIds[5])
@@ -1701,11 +1721,12 @@
                 modalPreparationDraft.tetraStationNumber = '';
             }
             const status = document.getElementById('tetraStationSelectionStatus');
-            if (status) status.textContent = `Сонгосон: ${updatedIds.length}/5`;
+            if (status) status.textContent = updatedIds.includes('none') ? 'Тетра станц байхгүй' : `Сонгосон: ${updatedIds.length}/5`;
         }
 
         function getTetraStationDescription(stationId, legacyStationNumber = '') {
             const stationIds = Array.isArray(stationId) ? stationId : stationId ? [stationId] : [];
+            if (stationIds.includes('none')) return 'Тетра станц байхгүй';
             if (!stationIds.length && legacyStationNumber) {
                 for (const group of TETRA_STATION_GROUPS) {
                     const stationIndex = group.stations.findIndex(station => station.number === legacyStationNumber);
@@ -1887,7 +1908,7 @@
         }
 
         async function saveTomorrowPreparation() {
-            if (!modalPreparationDraft || isPreparationLocked(modalPreparationTargetDate)) {
+            if (!modalPreparationDraft || isPreparationLocked(modalPreparationTargetDate, currentModalDate)) {
                 setModalSaveStatus('preparationSaveStatus', 'Оруулах хугацаа 23:30-д дууссан. Зөвхөн харах горим.', 'text-xs text-red-700');
                 return;
             }
@@ -1919,7 +1940,7 @@
             };
             try {
                 await saveDatabase();
-                setModalSaveStatus('preparationSaveStatus', 'Маргаашийн бэлтгэл хадгалагдлаа.', 'text-xs text-emerald-700');
+                setModalSaveStatus('preparationSaveStatus', 'Ажлын бэлтгэл хадгалагдлаа.', 'text-xs text-emerald-700');
             } catch (error) {
                 console.error('Failed to save tomorrow preparation', error);
                 if (previousPreparation) {
