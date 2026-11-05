@@ -546,11 +546,11 @@
                 location: 'Ногоон толгой',
                 stations: [
                     { affiliation: 'ПД', number: '4753300' },
-                    { affiliation: 'ПДБк', number: '4753302' },
+                    { affiliation: 'ПДБк', number: '4753926' },
                     { affiliation: 'ПДБ1', number: '4753301' },
-                    { affiliation: 'ПДБ2', number: '4753310' },
+                    { affiliation: 'ПДБ2', number: '4753302' },
                     { affiliation: 'Т/з', number: '4753311' },
-                    { affiliation: 'Т/з', number: '4753312' },
+                    { affiliation: 'Т/з', number: '4753310' },
                     { affiliation: 'Дохиочин', number: '4753303' }
                 ]
             },
@@ -1515,12 +1515,35 @@
             renderTomorrowPreparation(dateStr);
         }
 
+        function getPlannedBrigadeNames(tasks) {
+            return [...new Set(tasks.map(task => String(task.brigade || '').trim() || 'Тасаг заагаагүй'))];
+        }
+
+        function getBrigadePlanStatus(preparation, brigade) {
+            const brigadeStatuses = preparation?.brigadeFollowsPlan;
+            if (brigadeStatuses && typeof brigadeStatuses === 'object') {
+                return Object.prototype.hasOwnProperty.call(brigadeStatuses, brigade) &&
+                    ['yes', 'no'].includes(brigadeStatuses[brigade])
+                    ? brigadeStatuses[brigade]
+                    : '';
+            }
+            return ['yes', 'no'].includes(preparation?.followsPlan) ? preparation.followsPlan : '';
+        }
+
+        function hasBrigadeNotFollowingPlan(preparation, tasks) {
+            const brigades = getPlannedBrigadeNames(tasks);
+            return brigades.length
+                ? brigades.some(brigade => getBrigadePlanStatus(preparation, brigade) === 'no')
+                : preparation?.followsPlan === 'no';
+        }
+
         function renderTomorrowPreparation(dateStr) {
             const targetDate = modalPreparationTargetDate || getNextPlannedWorkDate(dateStr);
             const preparationLocked = isPreparationLocked(targetDate, dateStr);
             const reportKey = `${currentUser.id}_${targetDate}`;
             const report = modalPreparationDraft || db.preparations[reportKey] || {};
             const plannedTasks = db.plans[reportKey] || [];
+            const plannedBrigades = getPlannedBrigadeNames(plannedTasks);
             const container = document.getElementById('tomorrowPreparation');
             const fieldDisabled = preparationLocked ? 'disabled' : '';
             const selectField = (field, label, options, value, onChange = '') => `
@@ -1535,7 +1558,7 @@
                 { value: 'yes', label: 'Тийм' },
                 { value: 'no', label: 'Үгүй' }
             ];
-            const followsPlan = report.followsPlan || (plannedTasks.length ? 'yes' : 'no');
+            const hasAlternativeWork = hasBrigadeNotFollowingPlan(report, plannedTasks);
             const tetraRadio = report.tetraRadio || 'yes';
             const selectedTetraStationIds = Array.isArray(report.tetraStationIds)
                 ? report.tetraStationIds
@@ -1581,7 +1604,24 @@
                     ${plannedTasksHtml}
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    ${selectField('followsPlan', 'Төлөвлөгөөний дагуу ажиллах эсэх', yesNo, followsPlan, 'toggleAlternativeWorkFields(this.value)')}
+                    <div class="sm:col-span-2 space-y-2">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Бригад тус бүр төлөвлөгөөний дагуу ажиллах эсэх</label>
+                            <p class="text-[10px] text-slate-500">Бригад бүрийн хариуг тусад нь сонгоно уу.</p>
+                        </div>
+                        ${plannedBrigades.length ? plannedBrigades.map(brigade => {
+                            const status = getBrigadePlanStatus(report, brigade);
+                            return `
+                                <div class="grid grid-cols-1 sm:grid-cols-2 items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
+                                    <span class="text-xs font-semibold text-slate-700">${escapeHtml(brigade)}</span>
+                                    <select data-preparation="brigadeFollowsPlan" data-brigade="${escapeHtml(brigade)}" onchange="toggleAlternativeWorkFields()" ${fieldDisabled} required class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                                        <option value="" ${status ? '' : 'selected'}>Хариу сонгоно уу</option>
+                                        ${yesNo.map(option => `<option value="${option.value}" ${status === option.value ? 'selected' : ''}>${option.label}</option>`).join('')}
+                                    </select>
+                                </div>
+                            `;
+                        }).join('') : '<p class="text-xs text-slate-500">Төлөвлөгөөт бригад бүртгэгдээгүй байна.</p>'}
+                    </div>
                     ${selectField('visibility', 'Үзэгдэх орчин', [
                         { value: 'normal', label: 'Хэвийн' },
                         { value: 'limited', label: 'Хязгаарлагдмал' }
@@ -1620,10 +1660,10 @@
                             ? `<p class="mt-1 text-[10px] text-amber-700">Өмнөх хариулт: ${report.protection === 'yes' ? 'Тийм' : report.protection === 'no' ? 'Үгүй' : escapeHtml(report.protection)}. Шинэ төрлөөс сонгоно уу.</p>`
                             : ''}
                     </div>
-                    <div id="alternativeWorkFields" class="${followsPlan === 'no' ? '' : 'hidden'} sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div id="alternativeWorkFields" class="${hasAlternativeWork ? '' : 'hidden'} sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Төлөвлөгөөнөөс өөр байршил</label>
-                            <input type="text" data-preparation="alternativeLocation" value="${escapeHtml(report.alternativeLocation || '')}" placeholder="Замын км, өртөө" ${followsPlan === 'no' ? 'required' : ''} ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                            <input type="text" data-preparation="alternativeLocation" value="${escapeHtml(report.alternativeLocation || '')}" placeholder="Замын км, өртөө" ${hasAlternativeWork ? 'required' : ''} ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Төлөвлөгөөний бус ажил</label>
@@ -1668,11 +1708,14 @@
             }
         }
 
-        function toggleAlternativeWorkFields(followsPlan) {
+        function toggleAlternativeWorkFields() {
             const container = document.getElementById('alternativeWorkFields');
+            if (!container) return;
             const locationInput = container.querySelector('[data-preparation="alternativeLocation"]');
-            container.classList.toggle('hidden', followsPlan !== 'no');
-            locationInput.required = followsPlan === 'no';
+            const hasAlternativeWork = Array.from(document.querySelectorAll('#tomorrowPreparation [data-preparation="brigadeFollowsPlan"]'))
+                .some(select => select.value === 'no');
+            container.classList.toggle('hidden', !hasAlternativeWork);
+            locationInput.required = hasAlternativeWork;
         }
 
         function toggleTetraStationFields(tetraRadio) {
@@ -1778,9 +1821,14 @@
             document.querySelectorAll('#tomorrowPreparation [data-preparation]').forEach(input => {
                 if (modalPreparationDraft) {
                     const field = input.getAttribute('data-preparation');
-                    modalPreparationDraft[field] = input.multiple
-                        ? Array.from(input.selectedOptions, option => option.value)
-                        : input.value;
+                    if (field === 'brigadeFollowsPlan') {
+                        modalPreparationDraft.brigadeFollowsPlan = modalPreparationDraft.brigadeFollowsPlan || {};
+                        modalPreparationDraft.brigadeFollowsPlan[input.getAttribute('data-brigade')] = input.value;
+                    } else {
+                        modalPreparationDraft[field] = input.multiple
+                            ? Array.from(input.selectedOptions, option => option.value)
+                            : input.value;
+                    }
                 }
             });
         }
@@ -1925,10 +1973,19 @@
                 alert('Хорио, хамгаалалтын төрлөөс дор хаяж нэгийг сонгоно уу.');
                 return;
             }
-            if (modalPreparationDraft.followsPlan === 'no' && !String(modalPreparationDraft.alternativeLocation || '').trim()) {
+            const plannedTasks = db.plans[`${currentUser.id}_${modalPreparationTargetDate}`] || [];
+            const plannedBrigades = getPlannedBrigadeNames(plannedTasks);
+            const brigadeStatuses = modalPreparationDraft.brigadeFollowsPlan || {};
+            if (plannedBrigades.some(brigade => !['yes', 'no'].includes(brigadeStatuses[brigade]))) {
+                alert('Төлөвлөгөөт бригад бүрийн төлөвлөгөөний дагуу ажиллах эсэхийг сонгоно уу.');
+                return;
+            }
+            const hasAlternativeWork = plannedBrigades.some(brigade => brigadeStatuses[brigade] === 'no');
+            if (hasAlternativeWork && !String(modalPreparationDraft.alternativeLocation || '').trim()) {
                 alert('Төлөвлөгөөний бус ажилд байршлыг заавал оруулна уу.');
                 return;
             }
+            modalPreparationDraft.followsPlan = hasAlternativeWork ? 'no' : 'yes';
 
             const preparationKey = `${currentUser.id}_${modalPreparationTargetDate}`;
             const previousPreparation = db.preparations[preparationKey];
@@ -2018,6 +2075,12 @@
 
         function renderEngineerPreparationCard(preparation, plannedTasks, dateStr) {
             const answer = value => value === 'yes' ? 'Тийм' : value === 'no' ? 'Үгүй' : 'Оруулаагүй';
+            const brigadeFollowPlan = getPlannedBrigadeNames(plannedTasks).map(brigade => `
+                <div class="flex items-center justify-between gap-2 rounded border border-slate-200 bg-white px-2 py-1">
+                    <span>${escapeHtml(brigade)}</span>
+                    <b>${answer(getBrigadePlanStatus(preparation, brigade))}</b>
+                </div>
+            `).join('');
             const plannedWork = plannedTasks.length
                 ? `<div class="space-y-2">${plannedTasks.map((task, index) => `
                     <div class="rounded-lg border border-slate-200 bg-white p-3">
@@ -2049,7 +2112,7 @@
                         ${plannedWork}
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div><span class="text-slate-500">Төлөвлөгөөний дагуу:</span> <b>${answer(preparation.followsPlan)}</b></div>
+                        <div class="sm:col-span-2"><span class="text-slate-500">Бригад тус бүрийн төлөвлөгөөний дагуу эсэх:</span><div class="mt-1 space-y-1">${brigadeFollowPlan || `<b>${answer(preparation.followsPlan)}</b>`}</div></div>
                         <div><span class="text-slate-500">Үзэгдэх орчин:</span> <b>${preparation.visibility === 'normal' ? 'Хэвийн' : preparation.visibility === 'limited' ? 'Хязгаарлагдмал' : 'Оруулаагүй'}</b></div>
                         <div><span class="text-slate-500">Замчин / дохиочин:</span> <b>${escapeHtml(preparation.signalman || 'Оруулаагүй')}</b></div>
                         <div><span class="text-slate-500">Хүн хүч хангалттай:</span> <b>${answer(preparation.manpowerSufficient)}</b></div>
@@ -2072,10 +2135,17 @@
                 ${group.sections.map(section => {
                 const preparation = db.preparations[`${section.id}_${dateStr}`];
                 const tasks = db.plans[`${section.id}_${dateStr}`] || [];
-                const work = preparation?.followsPlan === 'no'
-                    ? escapeHtml(preparation.alternativeTask || 'Төлөвлөгөөний бус ажил оруулаагүй')
-                    : tasks.length
-                        ? tasks.map(task => `${escapeHtml(task.taskName || 'Ажил оруулаагүй')}${task.location ? ` · ${escapeHtml(task.location)}` : ''}`).join('<br>')
+                const plannedBrigades = getPlannedBrigadeNames(tasks);
+                const hasAlternativeWork = hasBrigadeNotFollowingPlan(preparation, tasks);
+                const work = tasks.length
+                    ? `<div class="space-y-2">${tasks.map(task => `
+                            <div class="rounded-md border border-sky-100 bg-sky-50 px-2 py-1.5 text-left">
+                                <span class="inline-flex rounded-full bg-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-900">${escapeHtml(task.brigade || 'Тасаг заагаагүй')}</span>
+                                <div class="mt-1">${escapeHtml(task.taskName || 'Ажил оруулаагүй')}${task.location ? ` · ${escapeHtml(task.location)}` : ''}</div>
+                            </div>
+                        `).join('')}</div>`
+                    : preparation?.alternativeTask
+                        ? escapeHtml(preparation.alternativeTask)
                         : 'Төлөвлөгөөт ажил оруулаагүй';
                 const answerBadge = value => {
                     if (value === 'yes') {
@@ -2090,11 +2160,14 @@
                     ? 'Хэвийн'
                     : preparation?.visibility === 'limited' ? 'Хязгаарлагдмал' : 'Мэдээлэлгүй';
                 const followsPlan = preparation
-                    ? preparation.followsPlan === 'no'
-                        ? '<span class="inline-flex rounded-full bg-rose-100 px-2 py-0.5 font-semibold text-rose-800">Төлөвлөгөөний бус</span>'
-                        : preparation.followsPlan === 'yes'
-                            ? '<span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">Төлөвлөгөөний дагуу</span>'
-                            : '<span class="text-slate-400">Мэдээлэлгүй</span>'
+                    ? plannedBrigades.length
+                        ? `<div class="space-y-1">${plannedBrigades.map(brigade => `
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-semibold">${escapeHtml(brigade)}</span>
+                                ${answerBadge(getBrigadePlanStatus(preparation, brigade))}
+                            </div>
+                        `).join('')}</div>`
+                        : answerBadge(preparation.followsPlan)
                     : '<span class="text-slate-400">Мэдээлэл ирүүлээгүй</span>';
                 const signalman = preparation ? escapeHtml(preparation.signalman || 'Дохиочин оруулаагүй') : 'Мэдээлэл ирүүлээгүй';
                 const additionalSignalman = preparation
@@ -2105,7 +2178,7 @@
                 const radio = preparation
                     ? `${answerBadge(preparation.tetraRadio)}${preparation.tetraRadio === 'yes' ? `<br><span class="text-slate-600">${escapeHtml(getTetraStationDescription(preparation.tetraStationIds || preparation.tetraStationId, preparation.tetraStationNumber) || 'Дугаар сонгоогүй')}</span>` : ''}`
                     : 'Мэдээлэл ирүүлээгүй';
-                const alternative = preparation?.followsPlan === 'no'
+                const alternative = hasAlternativeWork
                     ? `${escapeHtml(preparation.alternativeLocation || 'Байршил оруулаагүй')}${preparation.alternativeTask ? `<br>${escapeHtml(preparation.alternativeTask)}` : ''}`
                     : '—';
                 const reason = preparation?.changeReason || '—';
@@ -2115,10 +2188,10 @@
                 const reportedOn = reportedAt
                     ? `<span class="block text-[10px] text-slate-400">Илгээсэн: ${escapeHtml(reportedAt)}</span>`
                     : '';
-                const rowStyle = preparation?.followsPlan === 'no'
+                const rowStyle = hasAlternativeWork
                     ? 'bg-rose-50 text-rose-950 border-l-4 border-l-rose-500'
                     : preparation ? 'bg-white' : 'bg-slate-50 text-slate-500';
-                const followsPlanStyle = preparation?.followsPlan === 'no' ? 'bg-rose-100' : '';
+                const followsPlanStyle = hasAlternativeWork ? 'bg-rose-100' : '';
 
                 return `
                     <tr class="${rowStyle}">
