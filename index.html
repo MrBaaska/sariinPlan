@@ -215,6 +215,7 @@
                         </div>
                     </div>
                 </div>
+                <div id="sectionActualWorkSummary"></div>
             </div>
 
             <!-- TAB 3: REVIEWS & FEEDBACK -->
@@ -377,6 +378,7 @@
                     <div id="modalTaskList" class="space-y-4">
                         <!-- Task cards inserted by JS -->
                     </div>
+                    <div id="actualWorkEntry" class="space-y-3 border-t border-slate-200 pt-4"></div>
                     <div class="flex justify-end border-t border-slate-200 pt-3">
                         <span id="planSaveStatus" class="text-xs text-slate-500 mr-auto"></span>
                     </div>
@@ -767,6 +769,19 @@
             }
         ];
         const PROTECTION_MEASURES = ['СЦБ', 'Дохио тэмдэгт', 'Анхаарамж', 'Дохиочин', 'Шаардлагагүй'];
+        const ACTUAL_WORK_TYPES = [
+            'Цариг тохируулах /үзүүр/',
+            'ЭШП-р чигжих /дэр/',
+            'Гар чигжилт /дэр/',
+            'Дахин хадалт /үзүүр/',
+            'Модон ивээс тавих авах /үзүүр/',
+            'Сум цэвэрлэгээ /ком/',
+            'Зам төмрийн шамралт авах /ширхэг/',
+            'Подрельс гаргах /пог.м/',
+            'Уулзварын боолт чангалах /үзүүр/',
+            'Уулзварын зай хөөх /метр/',
+            'Тор засах /метр/'
+        ];
 
         // Simulated Date State (Defaults to current system date)
         const initialLocalDate = new Date();
@@ -788,13 +803,15 @@
             plans: {},      // key: `${sectionId}_${date}` => array of tasks
             preparations: {}, // key: `${sectionId}_${date}` => next-day preparation report
             engineerEvals: {}, // key: `${sectionId}_${date}` => evaluation object
-            managerApprovals: {} // key: `${sectionId}_${monthStr}` => approval object
+            managerApprovals: {}, // key: `${sectionId}_${monthStr}` => approval object
+            actualWorkReports: {} // key: `${sectionId}_${date}` => completed work entries
         };
         let lastSyncedDatabaseState = {
             plans: {},
             preparations: {},
             engineerEvals: {},
-            managerApprovals: {}
+            managerApprovals: {},
+            actualWorkReports: {}
         };
         let databaseSaveQueue = Promise.resolve();
         let databaseReady = false;
@@ -893,7 +910,7 @@
             if (!state || typeof state !== 'object' || Array.isArray(state)) {
                 throw new Error('Supabase-д хадгалсан өгөгдлийн бүтэц буруу байна.');
             }
-            for (const key of ['plans', 'preparations', 'engineerEvals', 'managerApprovals']) {
+            for (const key of ['plans', 'preparations', 'engineerEvals', 'managerApprovals', 'actualWorkReports']) {
                 if (state[key] !== undefined && (!state[key] || typeof state[key] !== 'object' || Array.isArray(state[key]))) {
                     throw new Error(`Өгөгдлийн ${key} хэсгийн бүтэц буруу байна.`);
                 }
@@ -902,7 +919,8 @@
                 plans: state.plans || {},
                 preparations: state.preparations || {},
                 engineerEvals: state.engineerEvals || {},
-                managerApprovals: state.managerApprovals || {}
+                managerApprovals: state.managerApprovals || {},
+                actualWorkReports: state.actualWorkReports || {}
             };
         }
 
@@ -955,7 +973,7 @@
 
         function getChangedDatabaseState() {
             const changedState = {};
-            for (const section of ['plans', 'preparations', 'engineerEvals', 'managerApprovals']) {
+            for (const section of ['plans', 'preparations', 'engineerEvals', 'managerApprovals', 'actualWorkReports']) {
                 const changedEntries = {};
                 for (const [key, value] of Object.entries(db[section])) {
                     if (JSON.stringify(value) !== JSON.stringify(lastSyncedDatabaseState[section][key])) {
@@ -1030,6 +1048,31 @@
 
         function isPlanLocked(dateStr) {
             return !dateStr || !planEditUnlocked;
+        }
+
+        function getLocalDateString(date = new Date()) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function isExecutionLocked(dateStr) {
+            return !dateStr || dateStr !== getLocalDateString();
+        }
+
+        function scheduleExecutionLock(dateStr) {
+            clearTimeout(executionLockTimeout);
+            if (isExecutionLocked(dateStr)) return;
+
+            const now = new Date();
+            const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            executionLockTimeout = setTimeout(() => {
+                if (currentModalDate !== dateStr) return;
+                renderModalTaskRows(dateStr, isPlanLocked(dateStr), true);
+                document.getElementById('saveExecutionBtn').disabled = true;
+                document.getElementById('modalLockSubtitle').textContent =
+                    'Гүйцэтгэлийн өдөр дууссан. Өмнөх өдрийн гүйцэтгэл зөвхөн харах горимд байна.';
+                setModalSaveStatus('executionSaveStatus', 'Гүйцэтгэлийг зөвхөн тухайн өдөр оруулах боломжтой.', 'text-xs text-red-700');
+                lucide.createIcons();
+            }, nextDay.getTime() - now.getTime() + 100);
         }
 
         function getDefaultSectionMonth() {
@@ -1157,6 +1200,7 @@
 
         function changeSectionMonth(monthStr) {
             loadSectionPortal();
+            if (activeSectionTab === 'dashboard') renderSectionCharts();
             if (activeSectionTab === 'reviews') renderSectionReviews();
         }
 
@@ -1205,7 +1249,7 @@
 
                 cell.innerHTML = `
                     <div class="flex items-center justify-between">
-                        <span class="font-bold text-sm ${day === parseInt(simulatedDate.split('-')[2]) ? 'bg-sky-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs' : 'text-slate-700'}">${day}</span>
+                        <span class="font-bold text-sm ${monthStr === simulatedDate.substring(0, 7) && day === parseInt(simulatedDate.split('-')[2]) ? 'bg-sky-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs' : 'text-slate-700'}">${day}</span>
                         ${taskCount > 0 ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-800">${taskCount} ажил</span>` : ''}
                     </div>
 
@@ -1300,6 +1344,107 @@
                 },
                 options: { responsive: true, maintainAspectRatio: false }
             });
+            renderSectionActualWorkSummary();
+        }
+
+        function getActualWorkUnit(workType) {
+            return workType.match(/\/([^/]+)\/$/)?.[1] || '';
+        }
+
+        function renderSectionActualWorkSummary() {
+            const container = document.getElementById('sectionActualWorkSummary');
+            const totals = new Map(ACTUAL_WORK_TYPES.map(workType => [workType, { quantity: 0, entries: 0 }]));
+            const dailyEntries = [];
+            const selectedMonth = document.getElementById('sectionMonthPicker').value || simulatedDate.substring(0, 7);
+            const monthPrefix = `${currentUser.id}_${selectedMonth}-`;
+            const today = getLocalDateString();
+
+            Object.entries(db.actualWorkReports).forEach(([key, entries]) => {
+                if (!key.startsWith(monthPrefix)) return;
+                const date = key.slice(`${currentUser.id}_`.length);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today || !Array.isArray(entries)) return;
+                entries.forEach(entry => {
+                    if (!totals.has(entry.workType)) return;
+                    const quantity = Number(entry.quantity);
+                    if (!Number.isFinite(quantity) || quantity <= 0) return;
+                    const total = totals.get(entry.workType);
+                    total.quantity += quantity;
+                    total.entries++;
+                    dailyEntries.push({ date, ...entry, quantity });
+                });
+            });
+            dailyEntries.sort((first, second) =>
+                second.date.localeCompare(first.date) ||
+                String(first.location).localeCompare(String(second.location), 'mn') ||
+                String(first.workType).localeCompare(String(second.workType), 'mn')
+            );
+            const formatQuantity = value => new Intl.NumberFormat('mn-MN', { maximumFractionDigits: 2 }).format(value);
+
+            container.innerHTML = `
+                <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-200 px-5 py-4">
+                        <h3 class="text-sm font-bold text-slate-800">Хийсэн ажлын өссөн дүн</h3>
+                        <p class="mt-1 text-[11px] text-slate-500">${escapeHtml(selectedMonth)} сарын тухайн ажлын бүртгэлийн нийт хэмжээ</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-700">
+                            <thead class="bg-slate-50 text-[10px] uppercase text-slate-500">
+                                <tr>
+                                    <th class="px-4 py-2">№</th>
+                                    <th class="px-4 py-2">Хийсэн ажлын нэр</th>
+                                    <th class="px-4 py-2 text-right">Нийт хэмжээ</th>
+                                    <th class="px-4 py-2 text-right">Бүртгэлийн тоо</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${ACTUAL_WORK_TYPES.map((workType, index) => {
+                                    const total = totals.get(workType);
+                                    return `
+                                        <tr>
+                                            <td class="px-4 py-2 text-slate-400">${index + 1}</td>
+                                            <td class="px-4 py-2 font-medium">${escapeHtml(workType)}</td>
+                                            <td class="px-4 py-2 text-right font-bold text-sky-800">${formatQuantity(total.quantity)} ${escapeHtml(getActualWorkUnit(workType))}</td>
+                                            <td class="px-4 py-2 text-right text-slate-500">${total.entries}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <section class="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-200 px-5 py-4">
+                        <h3 class="text-sm font-bold text-slate-800">${escapeHtml(selectedMonth)} сарын өдөрчилсөн хийсэн ажлын мэдээ</h3>
+                        <p class="mt-1 text-[11px] text-slate-500">${dailyEntries.length} ажлын бүртгэл · шинэ өдрөөс хуучин руу</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[700px] text-left text-xs text-slate-700">
+                            <thead class="bg-slate-50 text-[10px] uppercase text-slate-500">
+                                <tr>
+                                    <th class="px-4 py-2">Огноо</th>
+                                    <th class="px-4 py-2">Байршил</th>
+                                    <th class="px-4 py-2">Хийсэн ажил</th>
+                                    <th class="px-4 py-2 text-right">Хийсэн хэмжээ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${dailyEntries.length ? dailyEntries.map(entry => `
+                                    <tr>
+                                        <td class="whitespace-nowrap px-4 py-2 font-semibold text-slate-600">${escapeHtml(entry.date)}</td>
+                                        <td class="px-4 py-2">${escapeHtml(entry.location || '—')}</td>
+                                        <td class="px-4 py-2 font-medium">${escapeHtml(entry.workType)}</td>
+                                        <td class="whitespace-nowrap px-4 py-2 text-right font-bold text-sky-800">${formatQuantity(entry.quantity)} ${escapeHtml(getActualWorkUnit(entry.workType))}</td>
+                                    </tr>
+                                `).join('') : `
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-6 text-center text-slate-400">${escapeHtml(selectedMonth)} сард хийсэн ажлын бүртгэл алга байна.</td>
+                                    </tr>
+                                `}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            `;
         }
 
         function renderSectionReviews() {
@@ -1356,15 +1501,18 @@
         let currentModalDate = null;
         let modalTaskDrafts = [];
         let modalPersistedTaskIds = [];
+        let modalActualWorkDrafts = [];
+        let modalActualWorkPersistedIds = [];
         let modalPreparationDraft = null;
         let modalPreparationTargetDate = null;
         let preparationLockTimeout = null;
+        let executionLockTimeout = null;
 
         function openDayModal(dateStr) {
             currentModalDate = dateStr;
             planEditUnlocked = false;
             const planLocked = isPlanLocked(dateStr);
-            const executionLocked = false;
+            const executionLocked = isExecutionLocked(dateStr);
             const planKey = `${currentUser.id}_${dateStr}`;
             const savedTasks = db.plans[planKey] || [];
             modalPersistedTaskIds = savedTasks.map((task, index) => task.id || `legacy_${index}`);
@@ -1372,31 +1520,43 @@
                 ...task,
                 id: modalPersistedTaskIds[index]
             }));
+            const savedActualWork = db.actualWorkReports[planKey] || [];
+            modalActualWorkPersistedIds = savedActualWork.map((entry, index) => entry.id || `actual_${index}`);
+            modalActualWorkDrafts = savedActualWork.map((entry, index) => ({
+                ...entry,
+                id: modalActualWorkPersistedIds[index]
+            }));
             modalPreparationTargetDate = getNextPlannedWorkDate(dateStr);
             modalPreparationDraft = {
                 ...(db.preparations[`${currentUser.id}_${modalPreparationTargetDate}`] || {})
             };
 
             document.getElementById('modalDateTitle').textContent = `${dateStr}-ний ажлын төлөвлөгөө ба гүйцэтгэл`;
-            document.getElementById('modalLockSubtitle').textContent = planLocked || executionLocked
-                ? 'Төлөвлөгөө зөвхөн харах боломжтой. Засварлахын тулд код оруулна уу.'
-                : 'Төлөвлөгөө засварлах боломжтой.';
+            document.getElementById('modalLockSubtitle').textContent = executionLocked
+                ? 'Гүйцэтгэлийг зөвхөн тухайн өдөр оруулж, засварлана. Өмнөх болон дараагийн өдрийн гүйцэтгэл харах горимд байна.'
+                : planLocked
+                    ? 'Гүйцэтгэлийг өнөөдөр оруулах боломжтой. Төлөвлөгөөг засварлахын тулд код оруулна уу.'
+                    : 'Төлөвлөгөө болон өнөөдрийн гүйцэтгэлийг засварлах боломжтой.';
 
             document.getElementById('unlockPlanBtn').style.display = planLocked ? 'inline-flex' : 'none';
             document.getElementById('addNewTaskBtn').style.display = planLocked ? 'none' : 'inline-flex';
             document.getElementById('savePlanBtn').style.display = planLocked ? 'none' : 'inline-flex';
-            document.getElementById('saveExecutionBtn').disabled = savedTasks.length === 0;
+            updateExecutionSaveButton();
             document.getElementById('planSaveStatus').textContent = '';
-            document.getElementById('executionSaveStatus').textContent = '';
+            document.getElementById('executionSaveStatus').textContent = executionLocked
+                ? 'Гүйцэтгэлийг зөвхөн тухайн өдөр оруулах боломжтой.'
+                : '';
 
             renderModalTaskRows(dateStr, planLocked, executionLocked);
             document.getElementById('dayModal').classList.remove('hidden');
+            scheduleExecutionLock(dateStr);
             lucide.createIcons();
         }
 
         function closeDayModal() {
             document.getElementById('dayModal').classList.add('hidden');
             planEditUnlocked = false;
+            clearTimeout(executionLockTimeout);
         }
 
         function unlockPlanEditing() {
@@ -1408,7 +1568,9 @@
             }
 
             planEditUnlocked = true;
-            document.getElementById('modalLockSubtitle').textContent = 'Төлөвлөгөө засварлах боломжтой.';
+            document.getElementById('modalLockSubtitle').textContent = isExecutionLocked(currentModalDate)
+                ? 'Төлөвлөгөө засварлах боломжтой. Гүйцэтгэлийг зөвхөн тухайн өдөр оруулна.'
+                : 'Төлөвлөгөө болон өнөөдрийн гүйцэтгэлийг засварлах боломжтой.';
             document.getElementById('unlockPlanBtn').style.display = 'none';
             document.getElementById('addNewTaskBtn').style.display = 'inline-flex';
             document.getElementById('savePlanBtn').style.display = 'inline-flex';
@@ -1434,6 +1596,7 @@
         }
 
         function renderModalTaskRows(dateStr, planLocked, executionLocked) {
+            executionLocked = isExecutionLocked(dateStr);
             const container = document.getElementById('modalTaskList');
             container.innerHTML = '';
 
@@ -1441,6 +1604,7 @@
 
             if (tasks.length === 0 && planLocked) {
                 container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">${executionLocked ? 'Энэ өдөрт ажил төлөвлөөгүй байна.' : 'Төлөвлөгөө оруулаагүй байна. Засварлахын тулд нууц код оруулна уу.'}</div>`;
+                renderActualWorkEntries(executionLocked);
                 renderTomorrowPreparation(dateStr);
                 return;
             }
@@ -1512,7 +1676,87 @@
                 container.appendChild(card);
             });
 
+            renderActualWorkEntries(executionLocked);
             renderTomorrowPreparation(dateStr);
+        }
+
+        function renderActualWorkEntries(executionLocked) {
+            const container = document.getElementById('actualWorkEntry');
+            const entries = modalActualWorkDrafts;
+            const fieldDisabled = executionLocked ? 'disabled' : '';
+            container.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">Тухайн өдөр хийсэн ажлын мэдээ</h4>
+                        <p class="mt-1 text-[11px] text-slate-500">Байршил, ажлын нэр, хийсэн хэмжээ оруулна. 10 хүртэл ажил бүртгэнэ.</p>
+                    </div>
+                    <button type="button" onclick="addActualWorkEntry()" ${executionLocked || entries.length >= 10 ? 'disabled' : ''} class="rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+                        + Ажил нэмэх (${entries.length}/10)
+                    </button>
+                </div>
+                ${entries.length ? `
+                    <div class="grid grid-cols-1 gap-2">
+                        ${entries.map((entry, index) => `
+                            <div class="relative rounded-lg border border-slate-200 bg-white p-3">
+                                ${!executionLocked ? `<button type="button" onclick="removeActualWorkEntry(${index})" aria-label="Ажлыг устгах" class="absolute right-2 top-2 rounded px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50">Устгах</button>` : ''}
+                                <div class="grid grid-cols-1 gap-2 pr-0 sm:grid-cols-3 sm:pr-16">
+                                    <label class="block text-[10px] font-semibold text-slate-500">
+                                        Байршил
+                                        <input type="text" data-actual-work="location" data-index="${index}" value="${escapeHtml(entry.location || '')}" placeholder="Жишээ: 532 км" ${fieldDisabled} class="mt-1 w-full rounded border border-slate-300 p-2 text-xs text-slate-800 focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100">
+                                    </label>
+                                    <label class="block text-[10px] font-semibold text-slate-500">
+                                        Хийсэн ажил
+                                        <select data-actual-work="workType" data-index="${index}" ${fieldDisabled} class="mt-1 w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100">
+                                            <option value="">Ажил сонгоно уу</option>
+                                            ${ACTUAL_WORK_TYPES.map(workType => `<option value="${escapeHtml(workType)}" ${entry.workType === workType ? 'selected' : ''}>${escapeHtml(workType)}</option>`).join('')}
+                                        </select>
+                                    </label>
+                                    <label class="block text-[10px] font-semibold text-slate-500">
+                                        Хийсэн хэмжээ
+                                        <input type="number" min="0.01" step="any" data-actual-work="quantity" data-index="${index}" value="${escapeHtml(entry.quantity ?? '')}" placeholder="Хэмжээ" ${fieldDisabled} class="mt-1 w-full rounded border border-slate-300 p-2 text-xs text-slate-800 focus:ring-1 focus:ring-sky-500 disabled:bg-slate-100">
+                                    </label>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<p class="rounded-lg border border-dashed border-slate-300 p-3 text-center text-xs text-slate-400">Өнөөдрийн хийсэн ажлыг хараахан бүртгээгүй байна.</p>'}
+            `;
+        }
+
+        function updateExecutionSaveButton() {
+            const hasSavedPlanTasks = modalTaskDrafts.some(task => modalPersistedTaskIds.includes(task.id));
+            const hasSavedOrNewActualWork = modalActualWorkDrafts.length > 0 ||
+                (currentUser && db.actualWorkReports[`${currentUser.id}_${currentModalDate}`]?.length > 0);
+            document.getElementById('saveExecutionBtn').disabled =
+                isExecutionLocked(currentModalDate) || (!hasSavedPlanTasks && !hasSavedOrNewActualWork);
+        }
+
+        function syncActualWorkInputs() {
+            document.querySelectorAll('#actualWorkEntry [data-actual-work]').forEach(input => {
+                const index = Number(input.getAttribute('data-index'));
+                const field = input.getAttribute('data-actual-work');
+                if (modalActualWorkDrafts[index]) {
+                    modalActualWorkDrafts[index][field] = field === 'quantity'
+                        ? (input.value === '' ? '' : Number(input.value))
+                        : input.value;
+                }
+            });
+        }
+
+        function addActualWorkEntry() {
+            if (isExecutionLocked(currentModalDate) || modalActualWorkDrafts.length >= 10) return;
+            syncActualWorkInputs();
+            modalActualWorkDrafts.push({ id: `actual_${Date.now()}`, location: '', workType: '', quantity: '' });
+            renderActualWorkEntries(false);
+            updateExecutionSaveButton();
+        }
+
+        function removeActualWorkEntry(index) {
+            if (isExecutionLocked(currentModalDate)) return;
+            syncActualWorkInputs();
+            modalActualWorkDrafts.splice(index, 1);
+            renderActualWorkEntries(false);
+            updateExecutionSaveButton();
         }
 
         function getPlannedBrigadeNames(tasks) {
@@ -1535,6 +1779,19 @@
             return brigades.length
                 ? brigades.some(brigade => getBrigadePlanStatus(preparation, brigade) === 'no')
                 : preparation?.followsPlan === 'no';
+        }
+
+        function formatManpowerCounts(preparation) {
+            if (!preparation) return 'Мэдээлэл ирүүлээгүй';
+            const counts = [
+                ['brigadeCount', 'бригад'],
+                ['trackWorkerCount', 'замчин'],
+                ['signalmanCount', 'дохиочин']
+            ];
+            return counts.map(([field, label]) => {
+                const count = preparation[field];
+                return `${count !== undefined && count !== null && count !== '' ? escapeHtml(count) : 'Оруулаагүй'} ${label}`;
+            }).join(' · ');
         }
 
         function renderTomorrowPreparation(dateStr) {
@@ -1630,7 +1887,21 @@
                         <label class="block text-[11px] font-semibold text-slate-600 mb-1">Маргааш ажиллах замчин / дохиочин</label>
                         <input type="text" data-preparation="signalman" value="${escapeHtml(report.signalman || '')}" placeholder="Нэр, овог" ${fieldDisabled} class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
                     </div>
-                    ${selectField('manpowerSufficient', 'Хүн хүч хангалттай эсэх', yesNo, report.manpowerSufficient || 'yes')}
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Ажиллах хүн хүчний тоо</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            ${[
+                                ['brigadeCount', 'бригад'],
+                                ['trackWorkerCount', 'замчин'],
+                                ['signalmanCount', 'дохиочин']
+                            ].map(([field, label]) => `
+                                <label class="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+                                    <input type="number" min="0" step="1" required data-preparation="${field}" value="${escapeHtml(report[field] ?? '')}" ${fieldDisabled} class="w-20 rounded border border-slate-300 p-1.5 text-center text-xs focus:ring-1 focus:ring-amber-500 disabled:bg-slate-100">
+                                    <span>${label}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
                     ${selectField('additionalSignalman', 'Нэмэлт дохиочин ажиллах эсэх', yesNo, report.additionalSignalman || 'no')}
                     ${selectField('tetraRadio', 'Тетра станц байрлуулах эсэх', yesNo, tetraRadio, 'toggleTetraStationFields(this.value)')}
                     <div id="tetraStationFields" class="${tetraRadio === 'yes' ? '' : 'hidden'}">
@@ -1824,6 +2095,8 @@
                     if (field === 'brigadeFollowsPlan') {
                         modalPreparationDraft.brigadeFollowsPlan = modalPreparationDraft.brigadeFollowsPlan || {};
                         modalPreparationDraft.brigadeFollowsPlan[input.getAttribute('data-brigade')] = input.value;
+                    } else if (['brigadeCount', 'trackWorkerCount', 'signalmanCount'].includes(field)) {
+                        modalPreparationDraft[field] = input.value === '' ? '' : Number(input.value);
                     } else {
                         modalPreparationDraft[field] = input.multiple
                             ? Array.from(input.selectedOptions, option => option.value)
@@ -1831,6 +2104,7 @@
                     }
                 }
             });
+            syncActualWorkInputs();
         }
 
         function addNewTaskRow() {
@@ -1849,7 +2123,7 @@
             });
 
             renderModalTaskRows(currentModalDate, isPlanLocked(currentModalDate), false);
-            document.getElementById('saveExecutionBtn').disabled = !modalTaskDrafts.some(task => modalPersistedTaskIds.includes(task.id));
+            updateExecutionSaveButton();
             lucide.createIcons();
         }
 
@@ -1859,7 +2133,7 @@
             if (modalTaskDrafts[index]) {
                 modalTaskDrafts.splice(index, 1);
                 renderModalTaskRows(currentModalDate, isPlanLocked(currentModalDate), false);
-                document.getElementById('saveExecutionBtn').disabled = !modalTaskDrafts.some(task => modalPersistedTaskIds.includes(task.id));
+                updateExecutionSaveButton();
                 lucide.createIcons();
             }
         }
@@ -1912,7 +2186,7 @@
                 ...task,
                 id: modalPersistedTaskIds[index]
             }));
-            document.getElementById('saveExecutionBtn').disabled = modalTaskDrafts.length === 0;
+            updateExecutionSaveButton();
             setModalSaveStatus('planSaveStatus', 'Төлөвлөгөө хадгалагдлаа.', 'text-xs text-emerald-700');
             loadSectionPortal();
         }
@@ -1923,13 +2197,39 @@
         }
 
         async function saveModalExecution() {
+            if (!currentUser || !currentModalDate) {
+                setModalSaveStatus('executionSaveStatus', 'Гүйцэтгэл хадгалах өдөр эсвэл хэсэг сонгогдоогүй байна.', 'text-xs text-red-700');
+                return;
+            }
+            if (currentUser.role !== 'section' || isExecutionLocked(currentModalDate)) {
+                setModalSaveStatus('executionSaveStatus', 'Гүйцэтгэлийг зөвхөн тухайн өдөр оруулж, засварлах боломжтой.', 'text-xs text-red-700');
+                document.getElementById('saveExecutionBtn').disabled = true;
+                return;
+            }
+
             syncModalInputsToState();
             const planKey = `${currentUser.id}_${currentModalDate}`;
             const savedTasks = db.plans[planKey] || [];
             const previousTasks = savedTasks.map(task => ({ ...task }));
+            const previousPlan = db.plans[planKey];
+            const previousActualWork = db.actualWorkReports[planKey];
             const executionFields = ['status', 'actualManpower', 'executionNote'];
-            let updatedCount = 0;
+            if (modalActualWorkDrafts.length > 10) {
+                alert('Өдөрт хамгийн ихдээ 10 хийсэн ажил бүртгэнэ.');
+                return;
+            }
+            const invalidActualWork = modalActualWorkDrafts.find(entry =>
+                !String(entry.location || '').trim() ||
+                !ACTUAL_WORK_TYPES.includes(entry.workType) ||
+                !Number.isFinite(Number(entry.quantity)) ||
+                Number(entry.quantity) <= 0
+            );
+            if (invalidActualWork) {
+                alert('Хийсэн ажил бүрийн байршил, ажлын нэр болон 0-ээс их хэмжээг оруулна уу.');
+                return;
+            }
 
+            let updatedCount = 0;
             modalTaskDrafts.forEach(draft => {
                 const savedIndex = modalPersistedTaskIds.indexOf(draft.id);
                 if (savedIndex < 0 || !savedTasks[savedIndex]) return;
@@ -1939,20 +2239,39 @@
                 updatedCount++;
             });
 
-            if (!updatedCount) {
+            if (!updatedCount && !modalActualWorkDrafts.length && !previousActualWork?.length) {
                 alert('Гүйцэтгэл хадгалахын өмнө төлөвлөгөөг хадгална уу.');
                 return;
             }
 
+            db.actualWorkReports[planKey] = modalActualWorkDrafts.map((entry, index) => ({
+                id: entry.id || modalActualWorkPersistedIds[index] || `actual_${Date.now()}_${index}`,
+                location: String(entry.location).trim(),
+                workType: entry.workType,
+                quantity: Number(entry.quantity)
+            }));
+
             try {
                 await saveDatabase();
+                modalActualWorkPersistedIds = db.actualWorkReports[planKey].map(entry => entry.id);
+                modalActualWorkDrafts = db.actualWorkReports[planKey].map(entry => ({ ...entry }));
                 setModalSaveStatus('executionSaveStatus', 'Гүйцэтгэл хадгалагдлаа.', 'text-xs text-emerald-700');
             } catch (error) {
                 console.error('Failed to save section execution', error);
-                db.plans[planKey] = previousTasks;
+                if (previousPlan) {
+                    db.plans[planKey] = previousTasks;
+                } else {
+                    delete db.plans[planKey];
+                }
+                if (previousActualWork) {
+                    db.actualWorkReports[planKey] = previousActualWork;
+                } else {
+                    delete db.actualWorkReports[planKey];
+                }
                 setModalSaveStatus('executionSaveStatus', getDatabaseSaveErrorMessage(error), 'text-xs text-red-700');
             }
             loadSectionPortal();
+            if (activeSectionTab === 'dashboard') renderSectionCharts();
         }
 
         async function saveTomorrowPreparation() {
@@ -1971,6 +2290,18 @@
             }
             if (!getProtectionMeasures(modalPreparationDraft.protection).length) {
                 alert('Хорио, хамгаалалтын төрлөөс дор хаяж нэгийг сонгоно уу.');
+                return;
+            }
+            const manpowerCounts = [
+                ['brigadeCount', 'Бригадын'],
+                ['trackWorkerCount', 'Замчны'],
+                ['signalmanCount', 'Дохиочны']
+            ];
+            const invalidManpowerCount = manpowerCounts.find(([field]) =>
+                !Number.isInteger(modalPreparationDraft[field]) || modalPreparationDraft[field] < 0
+            );
+            if (invalidManpowerCount) {
+                alert(`${invalidManpowerCount[1]} тоог 0 буюу түүнээс дээш бүхэл тоогоор оруулна уу.`);
                 return;
             }
             const plannedTasks = db.plans[`${currentUser.id}_${modalPreparationTargetDate}`] || [];
@@ -2115,7 +2446,7 @@
                         <div class="sm:col-span-2"><span class="text-slate-500">Бригад тус бүрийн төлөвлөгөөний дагуу эсэх:</span><div class="mt-1 space-y-1">${brigadeFollowPlan || `<b>${answer(preparation.followsPlan)}</b>`}</div></div>
                         <div><span class="text-slate-500">Үзэгдэх орчин:</span> <b>${preparation.visibility === 'normal' ? 'Хэвийн' : preparation.visibility === 'limited' ? 'Хязгаарлагдмал' : 'Оруулаагүй'}</b></div>
                         <div><span class="text-slate-500">Замчин / дохиочин:</span> <b>${escapeHtml(preparation.signalman || 'Оруулаагүй')}</b></div>
-                        <div><span class="text-slate-500">Хүн хүч хангалттай:</span> <b>${answer(preparation.manpowerSufficient)}</b></div>
+                        <div class="sm:col-span-2"><span class="text-slate-500">Ажиллах хүн хүч:</span> <b>${formatManpowerCounts(preparation)}</b></div>
                         <div><span class="text-slate-500">Нэмэлт дохиочин:</span> <b>${answer(preparation.additionalSignalman)}${preparation.additionalSignalmanName ? ` · ${escapeHtml(preparation.additionalSignalmanName)}` : ''}</b></div>
                         <div><span class="text-slate-500">Тетра станц:</span> <b>${answer(preparation.tetraRadio)}${preparation.tetraRadio === 'yes' ? ` · ${escapeHtml(getTetraStationDescription(preparation.tetraStationIds || preparation.tetraStationId, preparation.tetraStationNumber) || 'Дугаар сонгоогүй')}` : ''}</b></div>
                         <div><span class="text-slate-500">Хорио, хамгаалалтын төрөл:</span> <b>${formatProtectionMeasures(preparation.protection)}</b></div>
@@ -2173,7 +2504,7 @@
                 const additionalSignalman = preparation
                     ? `${answerBadge(preparation.additionalSignalman)}${preparation.additionalSignalman === 'yes' ? `<br>${escapeHtml(preparation.additionalSignalmanName || 'Нэр оруулаагүй')}` : ''}`
                     : 'Мэдээлэл ирүүлээгүй';
-                const manpower = preparation ? answerBadge(preparation.manpowerSufficient) : 'Мэдээлэл ирүүлээгүй';
+                const manpower = formatManpowerCounts(preparation);
                 const protection = preparation ? formatProtectionMeasures(preparation.protection) : 'Мэдээлэл ирүүлээгүй';
                 const radio = preparation
                     ? `${answerBadge(preparation.tetraRadio)}${preparation.tetraRadio === 'yes' ? `<br><span class="text-slate-600">${escapeHtml(getTetraStationDescription(preparation.tetraStationIds || preparation.tetraStationId, preparation.tetraStationNumber) || 'Дугаар сонгоогүй')}</span>` : ''}`
@@ -2234,7 +2565,7 @@
                                     <th class="border border-slate-400 px-3 py-3">Үзэгдэх орчин</th>
                                     <th class="border border-slate-400 px-3 py-3">Дохиочин</th>
                                     <th class="border border-slate-400 px-3 py-3">Нэмэлт дохиочин</th>
-                                    <th class="border border-slate-400 px-3 py-3">Хүн хүч хангалттай эсэх</th>
+                                    <th class="border border-slate-400 px-3 py-3">Ажиллах хүн хүчний тоо</th>
                                     <th class="border border-slate-400 px-3 py-3">Хорио, хамгаалалт</th>
                                     <th class="border border-slate-400 px-3 py-3">Тетра станц</th>
                                     <th class="border border-slate-400 px-3 py-3">Ажил өөрчлөгдсөн шалтгаан</th>

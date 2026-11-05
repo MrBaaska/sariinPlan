@@ -8,7 +8,8 @@ create table if not exists public.railway_app_state (
         'plans', '{}'::jsonb,
         'preparations', '{}'::jsonb,
         'engineerEvals', '{}'::jsonb,
-        'managerApprovals', '{}'::jsonb
+        'managerApprovals', '{}'::jsonb,
+        'actualWorkReports', '{}'::jsonb
     ),
     updated_at timestamptz not null default now()
 );
@@ -52,7 +53,7 @@ begin
         raise exception 'incoming_state must be a JSON object';
     end if;
 
-    foreach section_name in array array['plans', 'preparations', 'engineerEvals', 'managerApprovals']
+    foreach section_name in array array['plans', 'preparations', 'engineerEvals', 'managerApprovals', 'actualWorkReports']
     loop
         if incoming_state ? section_name
             and jsonb_typeof(incoming_state -> section_name) <> 'object' then
@@ -67,7 +68,8 @@ begin
             'plans', coalesce(incoming_state -> 'plans', '{}'::jsonb),
             'preparations', coalesce(incoming_state -> 'preparations', '{}'::jsonb),
             'engineerEvals', coalesce(incoming_state -> 'engineerEvals', '{}'::jsonb),
-            'managerApprovals', coalesce(incoming_state -> 'managerApprovals', '{}'::jsonb)
+            'managerApprovals', coalesce(incoming_state -> 'managerApprovals', '{}'::jsonb),
+            'actualWorkReports', coalesce(incoming_state -> 'actualWorkReports', '{}'::jsonb)
         ),
         now()
     )
@@ -84,7 +86,10 @@ begin
                 || coalesce(excluded.state -> 'engineerEvals', '{}'::jsonb),
             'managerApprovals',
                 coalesce(public.railway_app_state.state -> 'managerApprovals', '{}'::jsonb)
-                || coalesce(excluded.state -> 'managerApprovals', '{}'::jsonb)
+                || coalesce(excluded.state -> 'managerApprovals', '{}'::jsonb),
+            'actualWorkReports',
+                coalesce(public.railway_app_state.state -> 'actualWorkReports', '{}'::jsonb)
+                || coalesce(excluded.state -> 'actualWorkReports', '{}'::jsonb)
         ),
         updated_at = now();
 end;
