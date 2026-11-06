@@ -1511,11 +1511,11 @@
 
         function openDayModal(dateStr) {
             currentModalDate = dateStr;
-            planEditUnlocked = false;
-            const planLocked = isPlanLocked(dateStr);
-            const executionLocked = isExecutionLocked(dateStr);
             const planKey = `${currentUser.id}_${dateStr}`;
             const savedTasks = db.plans[planKey] || [];
+            planEditUnlocked = savedTasks.length === 0;
+            const planLocked = isPlanLocked(dateStr);
+            const executionLocked = isExecutionLocked(dateStr);
             modalPersistedTaskIds = savedTasks.map((task, index) => task.id || `legacy_${index}`);
             modalTaskDrafts = savedTasks.map((task, index) => ({
                 ...task,
